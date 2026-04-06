@@ -1,0 +1,115 @@
+.panel {
+  width: 20rem;
+  border-left: 1px solid #d1d5db;
+  background: white;
+  padding: 1rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.poster {
+  width: 100%;
+  height: 10rem;
+  background-color: #d1d5db;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.posterPlaceholder {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.movieTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.scheduleCount {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin: 0.5rem 0 1.5rem 0;
+}
+
+.schedulesSection {
+  margin: 1.5rem 0;
+}
+
+.scheduleHeader {
+  font-weight: 500;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+}
+
+.schedulesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 16rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.scheduleItem {
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  background: #f9fafb;
+}
+
+.theatreName {
+  font-weight: 500;
+  color: #1f2937;
+  margin-bottom: 0.25rem;
+}
+
+.scheduleTime {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.noSchedules {
+  color: #999;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.bookingSection {
+  margin-top: 1.5rem;
+}
+
+.bookBtn {
+  width: 100%;
+  background-color: #16a34a;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-weight: 500;
+}
+
+.bookBtn:hover {
+  background-color: #15803d;
+}
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #999;
+  min-height: 300px;
+}
+
+.empty p {
+  margin: 0;
+}

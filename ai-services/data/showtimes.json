@@ -1,0 +1,89 @@
+[
+  {"id": "st_001", "movie_id": "mov_001", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-07", "time": "10:00", "available_seats": 120, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_002", "movie_id": "mov_001", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-07", "time": "14:30", "available_seats": 80, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_003", "movie_id": "mov_001", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-07", "time": "19:00", "available_seats": 45, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_004", "movie_id": "mov_001", "theater_id": "th_003", "screen_id": "scr_008", "date": "2026-04-07", "time": "11:00", "available_seats": 100, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_005", "movie_id": "mov_001", "theater_id": "th_003", "screen_id": "scr_008", "date": "2026-04-07", "time": "17:30", "available_seats": 60, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_006", "movie_id": "mov_002", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-07", "time": "09:30", "available_seats": 150, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_007", "movie_id": "mov_002", "theater_id": "th_001", "screen_id": "scr_003", "date": "2026-04-07", "time": "15:00", "available_seats": 70, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_008", "movie_id": "mov_002", "theater_id": "th_002", "screen_id": "scr_004", "date": "2026-04-07", "time": "13:00", "available_seats": 90, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_009", "movie_id": "mov_002", "theater_id": "th_004", "screen_id": "scr_010", "date": "2026-04-07", "time": "20:00", "available_seats": 55, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_010", "movie_id": "mov_003", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-07", "time": "10:30", "available_seats": 140, "language": "Vietnamese", "subtitle": ""},
+  {"id": "st_011", "movie_id": "mov_003", "theater_id": "th_002", "screen_id": "scr_004", "date": "2026-04-07", "time": "16:00", "available_seats": 100, "language": "Vietnamese", "subtitle": ""},
+  {"id": "st_012", "movie_id": "mov_003", "theater_id": "th_004", "screen_id": "scr_010", "date": "2026-04-07", "time": "11:00", "available_seats": 130, "language": "Vietnamese", "subtitle": ""},
+
+  {"id": "st_013", "movie_id": "mov_004", "theater_id": "th_001", "screen_id": "scr_003", "date": "2026-04-07", "time": "18:30", "available_seats": 50, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_014", "movie_id": "mov_004", "theater_id": "th_003", "screen_id": "scr_007", "date": "2026-04-07", "time": "21:00", "available_seats": 40, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_015", "movie_id": "mov_004", "theater_id": "th_002", "screen_id": "scr_005", "date": "2026-04-07", "time": "20:00", "available_seats": 20, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_016", "movie_id": "mov_005", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-08", "time": "10:00", "available_seats": 160, "language": "Japanese", "subtitle": "Vietnamese"},
+  {"id": "st_017", "movie_id": "mov_005", "theater_id": "th_003", "screen_id": "scr_007", "date": "2026-04-08", "time": "14:00", "available_seats": 90, "language": "Japanese", "subtitle": "Vietnamese"},
+  {"id": "st_018", "movie_id": "mov_005", "theater_id": "th_002", "screen_id": "scr_004", "date": "2026-04-08", "time": "19:30", "available_seats": 65, "language": "Japanese", "subtitle": "Vietnamese"},
+
+  {"id": "st_019", "movie_id": "mov_006", "theater_id": "th_001", "screen_id": "scr_003", "date": "2026-04-08", "time": "15:30", "available_seats": 80, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_020", "movie_id": "mov_006", "theater_id": "th_004", "screen_id": "scr_011", "date": "2026-04-08", "time": "20:30", "available_seats": 40, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_021", "movie_id": "mov_006", "theater_id": "th_002", "screen_id": "scr_006", "date": "2026-04-08", "time": "13:00", "available_seats": 110, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_022", "movie_id": "mov_007", "theater_id": "th_003", "screen_id": "scr_009", "date": "2026-04-08", "time": "21:30", "available_seats": 70, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_023", "movie_id": "mov_007", "theater_id": "th_004", "screen_id": "scr_010", "date": "2026-04-08", "time": "22:00", "available_seats": 55, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_024", "movie_id": "mov_008", "theater_id": "th_002", "screen_id": "scr_004", "date": "2026-04-08", "time": "11:00", "available_seats": 140, "language": "Vietnamese", "subtitle": ""},
+  {"id": "st_025", "movie_id": "mov_008", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-08", "time": "16:30", "available_seats": 95, "language": "Vietnamese", "subtitle": ""},
+
+  {"id": "st_026", "movie_id": "mov_009", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-09", "time": "10:00", "available_seats": 200, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_027", "movie_id": "mov_009", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-09", "time": "15:00", "available_seats": 130, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_028", "movie_id": "mov_009", "theater_id": "th_003", "screen_id": "scr_008", "date": "2026-04-09", "time": "19:00", "available_seats": 75, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_029", "movie_id": "mov_009", "theater_id": "th_004", "screen_id": "scr_012", "date": "2026-04-09", "time": "20:30", "available_seats": 15, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_030", "movie_id": "mov_010", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-09", "time": "09:00", "available_seats": 170, "language": "Japanese", "subtitle": "Vietnamese"},
+  {"id": "st_031", "movie_id": "mov_010", "theater_id": "th_002", "screen_id": "scr_006", "date": "2026-04-09", "time": "14:00", "available_seats": 120, "language": "Japanese", "subtitle": "Vietnamese"},
+  {"id": "st_032", "movie_id": "mov_010", "theater_id": "th_003", "screen_id": "scr_007", "date": "2026-04-09", "time": "18:00", "available_seats": 80, "language": "Japanese", "subtitle": "Vietnamese"},
+
+  {"id": "st_033", "movie_id": "mov_001", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-08", "time": "10:30", "available_seats": 150, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_034", "movie_id": "mov_001", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-08", "time": "19:00", "available_seats": 50, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_035", "movie_id": "mov_001", "theater_id": "th_004", "screen_id": "scr_010", "date": "2026-04-08", "time": "14:00", "available_seats": 100, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_036", "movie_id": "mov_002", "theater_id": "th_001", "screen_id": "scr_003", "date": "2026-04-09", "time": "13:00", "available_seats": 85, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_037", "movie_id": "mov_002", "theater_id": "th_003", "screen_id": "scr_009", "date": "2026-04-09", "time": "18:00", "available_seats": 60, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_038", "movie_id": "mov_003", "theater_id": "th_002", "screen_id": "scr_004", "date": "2026-04-09", "time": "10:00", "available_seats": 160, "language": "Vietnamese", "subtitle": ""},
+  {"id": "st_039", "movie_id": "mov_003", "theater_id": "th_004", "screen_id": "scr_010", "date": "2026-04-10", "time": "15:00", "available_seats": 130, "language": "Vietnamese", "subtitle": ""},
+
+  {"id": "st_040", "movie_id": "mov_004", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-10", "time": "20:00", "available_seats": 90, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_041", "movie_id": "mov_004", "theater_id": "th_002", "screen_id": "scr_005", "date": "2026-04-10", "time": "21:00", "available_seats": 25, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_042", "movie_id": "mov_005", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-10", "time": "10:00", "available_seats": 180, "language": "Japanese", "subtitle": "Vietnamese"},
+  {"id": "st_043", "movie_id": "mov_005", "theater_id": "th_003", "screen_id": "scr_008", "date": "2026-04-10", "time": "16:00", "available_seats": 100, "language": "Japanese", "subtitle": "Vietnamese"},
+
+  {"id": "st_044", "movie_id": "mov_006", "theater_id": "th_004", "screen_id": "scr_011", "date": "2026-04-10", "time": "19:00", "available_seats": 60, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_045", "movie_id": "mov_006", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-10", "time": "14:30", "available_seats": 110, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_046", "movie_id": "mov_007", "theater_id": "th_003", "screen_id": "scr_009", "date": "2026-04-10", "time": "22:00", "available_seats": 80, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_047", "movie_id": "mov_007", "theater_id": "th_001", "screen_id": "scr_003", "date": "2026-04-11", "time": "21:00", "available_seats": 50, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_048", "movie_id": "mov_008", "theater_id": "th_002", "screen_id": "scr_006", "date": "2026-04-11", "time": "11:00", "available_seats": 150, "language": "Vietnamese", "subtitle": ""},
+  {"id": "st_049", "movie_id": "mov_008", "theater_id": "th_004", "screen_id": "scr_010", "date": "2026-04-11", "time": "16:00", "available_seats": 100, "language": "Vietnamese", "subtitle": ""},
+
+  {"id": "st_050", "movie_id": "mov_009", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-11", "time": "14:00", "available_seats": 170, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_051", "movie_id": "mov_009", "theater_id": "th_003", "screen_id": "scr_008", "date": "2026-04-11", "time": "19:30", "available_seats": 80, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_052", "movie_id": "mov_010", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-11", "time": "10:00", "available_seats": 160, "language": "Japanese", "subtitle": "Vietnamese"},
+  {"id": "st_053", "movie_id": "mov_010", "theater_id": "th_004", "screen_id": "scr_010", "date": "2026-04-11", "time": "17:00", "available_seats": 90, "language": "Japanese", "subtitle": "Vietnamese"},
+
+  {"id": "st_054", "movie_id": "mov_001", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-10", "time": "14:00", "available_seats": 110, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_055", "movie_id": "mov_001", "theater_id": "th_003", "screen_id": "scr_008", "date": "2026-04-11", "time": "10:00", "available_seats": 200, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_056", "movie_id": "mov_001", "theater_id": "th_002", "screen_id": "scr_004", "date": "2026-04-12", "time": "15:00", "available_seats": 90, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_057", "movie_id": "mov_001", "theater_id": "th_004", "screen_id": "scr_010", "date": "2026-04-12", "time": "20:00", "available_seats": 70, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_058", "movie_id": "mov_002", "theater_id": "th_002", "screen_id": "scr_006", "date": "2026-04-12", "time": "13:30", "available_seats": 120, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_059", "movie_id": "mov_002", "theater_id": "th_004", "screen_id": "scr_011", "date": "2026-04-12", "time": "18:00", "available_seats": 55, "language": "English", "subtitle": "Vietnamese"},
+
+  {"id": "st_060", "movie_id": "mov_003", "theater_id": "th_001", "screen_id": "scr_002", "date": "2026-04-12", "time": "10:00", "available_seats": 180, "language": "Vietnamese", "subtitle": ""},
+  {"id": "st_061", "movie_id": "mov_005", "theater_id": "th_002", "screen_id": "scr_004", "date": "2026-04-12", "time": "14:00", "available_seats": 100, "language": "Japanese", "subtitle": "Vietnamese"},
+  {"id": "st_062", "movie_id": "mov_006", "theater_id": "th_003", "screen_id": "scr_009", "date": "2026-04-12", "time": "20:00", "available_seats": 70, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_063", "movie_id": "mov_009", "theater_id": "th_001", "screen_id": "scr_001", "date": "2026-04-12", "time": "19:00", "available_seats": 95, "language": "English", "subtitle": "Vietnamese"},
+  {"id": "st_064", "movie_id": "mov_010", "theater_id": "th_003", "screen_id": "scr_007", "date": "2026-04-13", "time": "11:00", "available_seats": 130, "language": "Japanese", "subtitle": "Vietnamese"},
+  {"id": "st_065", "movie_id": "mov_004", "theater_id": "th_001", "screen_id": "scr_003", "date": "2026-04-13", "time": "21:00", "available_seats": 60, "language": "English", "subtitle": "Vietnamese"}
+]
