@@ -1,0 +1,57 @@
+[
+  {
+    "id": "promo_001",
+    "name": "Student Discount",
+    "description": "Giam 20% cho sinh vien khi xuat trinh the sinh vien",
+    "discount_percent": 20,
+    "conditions": "Xuat trinh the sinh vien con han",
+    "valid_until": "2026-12-31",
+    "applicable_days": ["monday", "tuesday", "wednesday", "thursday", "friday"]
+  },
+  {
+    "id": "promo_002",
+    "name": "Happy Wednesday",
+    "description": "Giam 30% tat ca ve phim moi thu Tu",
+    "discount_percent": 30,
+    "conditions": "Chi ap dung vao thu Tu",
+    "valid_until": "2026-12-31",
+    "applicable_days": ["wednesday"]
+  },
+  {
+    "id": "promo_003",
+    "name": "Early Bird",
+    "description": "Giam 25% cho suat chieu truoc 12h trua",
+    "discount_percent": 25,
+    "conditions": "Suat chieu truoc 12:00",
+    "valid_until": "2026-06-30",
+    "applicable_days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+  },
+  {
+    "id": "promo_004",
+    "name": "Combo Couple",
+    "description": "Mua 2 ve ghe Couple tang 1 bap rang bo + 2 nuoc",
+    "discount_percent": 0,
+    "conditions": "Mua 2 ve ghe Couple",
+    "valid_until": "2026-12-31",
+    "applicable_days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+    "bonus": "1 bap rang bo lon + 2 nuoc ngot"
+  },
+  {
+    "id": "promo_005",
+    "name": "Member Gold",
+    "description": "Thanh vien Gold giam 15% moi ve",
+    "discount_percent": 15,
+    "conditions": "Thanh vien hang Gold tro len",
+    "valid_until": "2026-12-31",
+    "applicable_days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+  },
+  {
+    "id": "promo_006",
+    "name": "Weekend Family Pack",
+    "description": "Mua 4 ve Standard chi tra 3 ve vao cuoi tuan",
+    "discount_percent": 25,
+    "conditions": "Mua toi thieu 4 ve Standard vao cuoi tuan",
+    "valid_until": "2026-09-30",
+    "applicable_days": ["saturday", "sunday"]
+  }
+]
