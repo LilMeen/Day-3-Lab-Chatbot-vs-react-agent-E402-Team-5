@@ -213,6 +213,8 @@ class ReActAgent:
         steps: list[ReActStep] = []
         tools_used: list[str] = []
         final_answer = ""
+        awaiting_input = False
+        followup_question = ""
 
         for iteration in range(self.max_iterations):
 
@@ -274,6 +276,17 @@ class ReActAgent:
                 tools_used.append(step.action.tool)
                 steps.append(step)
 
+                # Detect HITL interrupt from smart_followup (API mode)
+                try:
+                    result_dict = json.loads(tool_result)
+                    if result_dict.get("status") == "awaiting_input":
+                        awaiting_input = True
+                        followup_question = result_dict.get("question", "")
+                        final_answer = followup_question
+                        break
+                except (json.JSONDecodeError, AttributeError):
+                    pass
+
                 # Add to within-turn history (CyBench-style)
                 step_text = self._format_step_as_text(step)
                 response_observation_history.append({
@@ -310,6 +323,8 @@ class ReActAgent:
             steps=steps,
             final_answer=final_answer,
             tools_used=tools_used,
+            awaiting_input=awaiting_input,
+            followup_question=followup_question,
         )
 
     def reset_memory(self, session_id: str):

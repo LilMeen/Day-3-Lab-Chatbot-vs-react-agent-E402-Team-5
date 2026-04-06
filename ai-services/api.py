@@ -8,6 +8,18 @@ from typing import Any
 import config
 from agent.react_agent import ReActAgent
 from crawling.crawl import get_movie_schedules
+from tools.cinestar_tools import (
+    get_all_movies,
+    get_movie_details,
+    get_discount,
+    get_movie_schedule,
+    get_movie_prices,
+    get_locations,
+    set_runtime_mode,
+)
+
+# Set API mode so smart_followup returns awaiting_input instead of blocking input()
+set_runtime_mode("api")
 
 # Khởi tạo Router
 router = APIRouter(prefix="/api/v1", tags=["AI Chat Services"])
@@ -131,6 +143,8 @@ class ChatResponse(BaseModel):
     bot_type: str
     reply: str
     session_id: str = ""
+    awaiting_input: bool = False
+    followup_question: str = ""
 class MovieScheduleResponse(BaseModel):
     status: str
     movie_url: str
@@ -150,6 +164,67 @@ async def movie_schedules(movie_url: str, debug_html: bool = False):
             total=_count_showtimes(schedules),
             schedules=schedules,
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ------------------------------------------------------------------
+# Cinestar Data Endpoints
+# ------------------------------------------------------------------
+
+@router.get("/movies")
+async def api_get_all_movies(status: str = Query("showing", description="showing | coming | all")):
+    """Danh sách phim đang chiếu hoặc sắp chiếu."""
+    try:
+        return get_all_movies(status=status)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/movies/details")
+async def api_get_movie_details(movie_name: str = Query(..., description="Tên phim")):
+    """Chi tiết một bộ phim: đạo diễn, diễn viên, mô tả..."""
+    try:
+        return get_movie_details(movie_name=movie_name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/movies/schedule")
+async def api_get_movie_schedule(
+    movie_name: str = Query(..., description="Tên phim"),
+    locality: str = Query("", description="Lọc theo thành phố, ví dụ: HCM"),
+):
+    """Lịch chiếu của một bộ phim theo rạp và ngày."""
+    try:
+        return get_movie_schedule(movie_name=movie_name, locality=locality)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/movies/prices")
+async def api_get_movie_prices(movie_name: str = Query(..., description="Tên phim")):
+    """Giá vé thật của một bộ phim (scrape qua Playwright)."""
+    try:
+        return get_movie_prices(movie_name=movie_name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/movies/locations")
+async def api_get_locations(movie_name: str = Query(..., description="Tên phim")):
+    """Danh sách rạp và thành phố đang chiếu một bộ phim."""
+    try:
+        return get_locations(movie_name=movie_name)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/discounts")
+async def api_get_discount():
+    """Khuyến mãi hiện có tại Cinestar."""
+    try:
+        return get_discount()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -188,6 +263,15 @@ async def chat_react_agent(request: ChatRequest):
     try:
         session_id = request.session_id or str(uuid.uuid4())
         response = _react_agent.run(session_id, request.user_message)
+        if response.awaiting_input:
+            return ChatResponse(
+                status="awaiting_input",
+                bot_type="react_agent",
+                reply=response.followup_question,
+                session_id=session_id,
+                awaiting_input=True,
+                followup_question=response.followup_question,
+            )
         return ChatResponse(status="success", bot_type="react_agent", reply=response.final_answer, session_id=session_id)
     except Exception as e:
         return ChatResponse(
