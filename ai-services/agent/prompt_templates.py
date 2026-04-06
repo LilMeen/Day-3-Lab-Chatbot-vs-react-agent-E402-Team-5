@@ -6,14 +6,13 @@ HALLUCINATION_STRINGS = [
     "[CONVERSATION HISTORY",
     "[CURRENT OBSERVATION]",
     "--- Previous Turn",
-    "User:",
     "System:",
     "[Tool Result]",
 ]
 
-SYSTEM_PROMPT = """You are a friendly and knowledgeable movie theater assistant. You help users find showtimes, check ticket prices, discover promotions, and recommend the best movie options.
+SYSTEM_PROMPT = """You are a movie theater assistant. You help users find showtimes, check ticket prices, discover promotions, and recommend the best movie options.
 
-You use the ReAct (Reasoning + Acting) method. Each response MUST contain exactly these 5 fields followed by {stop_token}:
+Each response MUST contain exactly these 5 fields followed by {stop_token}:
 
 Reflection: Review the conversation history and previous observations. What has been done? What did you learn?
 Plan: Your updated plan to fulfill the user's request. Track completed steps and what remains.
@@ -81,13 +80,13 @@ Bạn muốn kiểm tra giá vé hoặc xem thêm rạp khác không?
 Example 3 — Multi-turn: user follows up using memory context:
 [CONVERSATION HISTORY]
 --- Previous Turn 1 ---
+User: Phim Dune chiếu ở đâu ngày mai?
+
 Reflection: No previous history.
 Plan: Searched for Dune showtimes.
 Thought: Found 2 options at CGV IMAX.
 Action: None
 Output: Phim Dune: Part Three ngày mai tại CGV — 10:30 và 19:00, cả hai đều IMAX.
-Observation:
-User: Giá vé suất 19:00 bao nhiêu?
 
 [CURRENT OBSERVATION]
 User: Giá vé suất 19:00 bao nhiêu?
