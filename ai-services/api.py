@@ -1,39 +1,203 @@
 import os
-from typing import Any
+import uuid
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from crawling.crawl import get_movie_schedules
+from typing import Any
 
+import config
+from agent.react_agent import ReActAgent
+from crawling.crawl import get_movie_schedules
 
 # Khởi tạo Router
 router = APIRouter(prefix="/api/v1", tags=["AI Chat Services"])
 
+# ReAct agent instance (shared, holds session memory)
+_react_agent = ReActAgent()
+LLM_TIMEOUT_SEC = int(os.getenv("LLM_TIMEOUT_SEC", "45"))
+
+# ------------------------------------------------------------------
+# LLM caller for baseline (no tools, no ReAct)
+# ------------------------------------------------------------------
+
+OUT_OF_DOMAIN_REPLY = (
+    "Xin lỗi, tôi chỉ có thể hỗ trợ các câu hỏi liên quan đến rạp chiếu phim "
+    "như lịch chiếu, giá vé, khuyến mãi và gợi ý phim. "
+    "Bạn có câu hỏi nào về phim không? 🎬"
+)
+
+_DOMAIN_CLASSIFIER_PROMPT = """You are a domain classifier for a movie theater chatbot.
+Determine if the user's message is related to the movie theater domain.
+
+IN-DOMAIN topics: movies, showtimes, ticket prices, promotions, theater locations, seat types, film genres, booking, concessions.
+OUT-OF-DOMAIN topics: everything else (politics, cooking, math, coding, weather, health, sports unrelated to movies, etc.).
+
+Reply with ONLY one word: IN or OUT.
+
+User message: {message}"""
+
+
+def _is_out_of_domain(user_message: str) -> bool:
+    """Use LLM as a fast classifier to detect out-of-domain messages."""
+    prompt = _DOMAIN_CLASSIFIER_PROMPT.format(message=user_message)
+    provider = config.LLM_PROVIDER.lower()
+
+    try:
+        if provider == "openai":
+            from openai import OpenAI
+            client = OpenAI(api_key=config.OPENAI_API_KEY)
+            response = client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+                max_tokens=5,
+            )
+            verdict = (response.choices[0].message.content or "").strip().upper()
+
+        elif provider == "gemini":
+            from google import genai
+            client = genai.Client(api_key=config.GEMINI_API_KEY)
+            response = client.models.generate_content(
+                model=config.GEMINI_MODEL,
+                contents=prompt,
+                config={"temperature": 0},
+            )
+            verdict = (response.text or "").strip().upper()
+
+        else:
+            return False  # Unknown provider — let it pass
+
+        return verdict.startswith("OUT")
+
+    except Exception:
+        return False  # On classifier error — let it pass, don't block user
+
+
+def _run_with_timeout(func, *args):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(func, *args)
+        try:
+            return future.result(timeout=LLM_TIMEOUT_SEC)
+        except FuturesTimeoutError:
+            return None
+
+
+def _call_llm_baseline(user_message: str) -> str:
+    """Call the LLM directly with a simple system prompt — no tools, no ReAct loop."""
+    system_prompt = (
+        "Bạn là trợ lý rạp chiếu phim thân thiện. "
+        "Hãy trả lời câu hỏi của khách hàng về phim ảnh, suất chiếu và giá vé một cách ngắn gọn và hữu ích."
+    )
+
+    provider = config.LLM_PROVIDER.lower()
+
+    if provider == "openai":
+        from openai import OpenAI
+        client = OpenAI(api_key=config.OPENAI_API_KEY)
+        response = client.chat.completions.create(
+            model=config.OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=0,
+        )
+        return response.choices[0].message.content or ""
+
+    elif provider == "gemini":
+        from google import genai
+        client = genai.Client(api_key=config.GEMINI_API_KEY)
+        full_prompt = f"{system_prompt}\n\nUser: {user_message}"
+        response = client.models.generate_content(
+            model=config.GEMINI_MODEL,
+            contents=full_prompt,
+            config={"temperature": 0},
+        )
+        return response.text or ""
+
+    else:
+        raise ValueError(f"Unsupported provider: {provider}")
+
 
 # --- DATA MODELS ---
+
 class ChatRequest(BaseModel):
     user_message: str
+    session_id: str = ""          # Optional; auto-generated if empty
 
 
 class ChatResponse(BaseModel):
     status: str
     bot_type: str
     reply: str
-
-
-class MovieMeta(BaseModel):
-    title: str
-    description: str
-    poster_url: str
-
-
+    session_id: str = ""
 class MovieScheduleResponse(BaseModel):
     status: str
     movie_url: str
     total: int
-    movie: MovieMeta
     schedules: list[dict[str, Any]]
 
+# --- ENDPOINTS ---
 
+@router.get("/movie-schedules", response_model=MovieScheduleResponse)
+async def movie_schedules(movie_url: str, debug_html: bool = False):
+    """Lấy lịch chiếu phim từ URL trang movie của Cinestar."""
+    try:
+        schedules = get_movie_schedules(movie_url=movie_url, debug_html=debug_html)
+        return MovieScheduleResponse(
+            status="success",
+            movie_url=movie_url,
+            total=_count_showtimes(schedules),
+            schedules=schedules,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/baseline", response_model=ChatResponse)
+async def chat_baseline(request: ChatRequest):
+    """Bot cơ bản: chỉ dùng LLM, KHÔNG dùng tool hay ReAct loop."""
+    ood_result = _run_with_timeout(_is_out_of_domain, request.user_message)
+    if ood_result is True:
+        return ChatResponse(status="out_of_domain", bot_type="baseline", reply=OUT_OF_DOMAIN_REPLY)
+
+    try:
+        reply = _run_with_timeout(_call_llm_baseline, request.user_message)
+        if reply is None:
+            return ChatResponse(
+                status="error",
+                bot_type="baseline",
+                reply="Baseline model timeout. Vui lòng thử lại hoặc chuyển sang Agent.",
+                session_id=request.session_id,
+            )
+        return ChatResponse(status="success", bot_type="baseline", reply=reply)
+    except Exception as e:
+        return ChatResponse(
+            status="error",
+            bot_type="baseline",
+            reply="Baseline model gặp lỗi nội bộ. Vui lòng thử lại sau.",
+            session_id=request.session_id,
+        )
+
+
+@router.post("/agent", response_model=ChatResponse)
+async def chat_react_agent(request: ChatRequest):
+    """Bot thông minh: dùng ReAct Agent với 7 tools để tra cứu dữ liệu thực tế."""
+    ood_result = _run_with_timeout(_is_out_of_domain, request.user_message)
+    if ood_result is True:
+        return ChatResponse(status="out_of_domain", bot_type="react_agent", reply=OUT_OF_DOMAIN_REPLY)
+    try:
+        session_id = request.session_id or str(uuid.uuid4())
+        response = _react_agent.run(session_id, request.user_message)
+        return ChatResponse(status="success", bot_type="react_agent", reply=response.final_answer, session_id=session_id)
+    except Exception as e:
+        return ChatResponse(
+            status="error",
+            bot_type="fallback",
+            reply="Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ.",
+            session_id=request.session_id,
+        )
+    
+    
 def _count_showtimes(grouped_schedules: list[dict[str, Any]]) -> int:
     total = 0
     for locality in grouped_schedules:
@@ -56,58 +220,3 @@ def _count_showtimes(grouped_schedules: list[dict[str, Any]]) -> int:
                     if isinstance(showtimes, list):
                         total += len(showtimes)
     return total
-
-
-
-# --- ENDPOINTS ---
-@router.post("/baseline", response_model=ChatResponse)
-async def chat_baseline(request: ChatRequest):
-    """Bot cơ bản, chỉ dùng não LLM, KHÔNG dùng tool"""
-    try:
-        #reply = llm.invoke(request.user_message).content
-        reply = ""
-        return ChatResponse(status="success", bot_type="baseline", reply=reply)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/agent", response_model=ChatResponse)
-async def chat_react_agent(request: ChatRequest):
-    """Bot thông minh, dùng ReAct Agent và Tool để cào data thực tế"""
-    try:
-        # Cách gọi AI MỚI: dùng .invoke thay vì .run
-        # response = agent_executor.invoke({"input": request.user_message})
-
-        # Lấy câu trả lời cuối cùng từ Output
-        reply = ""
-        return ChatResponse(status="success", bot_type="react_agent", reply=reply)
-    except Exception as e:
-        # Nhánh Bonus (Fallback Path) khi có lỗi
-        return ChatResponse(
-            status="error",
-            bot_type="fallback",
-            reply="Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ."
-        )
-
-
-@router.get("/movie-schedules", response_model=MovieScheduleResponse)
-async def movie_schedules(movie_url: str, debug_html: bool = False):
-    """Lấy lịch chiếu phim từ URL trang movie của Cinestar."""
-    try:
-        data = get_movie_schedules(movie_url=movie_url, debug_html=debug_html)
-        schedules = data.get("schedules", []) if isinstance(data, dict) else []
-        movie = data.get("movie", {}) if isinstance(data, dict) else {}
-
-        return MovieScheduleResponse(
-            status="success",
-            movie_url=movie_url,
-            total=_count_showtimes(schedules),
-            movie=MovieMeta(
-                title=str(movie.get("title", "Unknown Movie")),
-                description=str(movie.get("description", "")),
-                poster_url=str(movie.get("poster_url", "")),
-            ),
-            schedules=schedules,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))

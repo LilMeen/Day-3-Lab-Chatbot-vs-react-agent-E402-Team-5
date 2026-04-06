@@ -15,6 +15,7 @@ export class ChatRepository {
     process.cwd(),
     process.env.CHAT_HISTORY_DIR ?? 'chat_history',
   );
+  private readonly aiTimeoutMs = Number(process.env.AI_SERVICE_TIMEOUT_MS ?? 60000);
 
   private normalizeSessionId(sessionId: string): string {
     const normalized = sessionId.trim();
@@ -34,6 +35,9 @@ export class ChatRepository {
   }
 
   async askAI(payload: ChatRequestEntity): Promise<ChatResponseEntity> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.aiTimeoutMs);
+
     try {
       const aiServiceUrl = payload.model === 'agent' ? this.aiAgentServiceUrl : this.aiBaselineServiceUrl;
   
@@ -43,6 +47,7 @@ export class ChatRepository {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ user_message: payload.message }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -71,6 +76,10 @@ export class ChatRepository {
         movieIds: normalizedMovieIds,
       };
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new HttpException('AI service timeout', HttpStatus.GATEWAY_TIMEOUT);
+      }
+
       if (error instanceof HttpException) {
         throw error;
       }
@@ -79,6 +88,8 @@ export class ChatRepository {
         'Cannot reach AI service',
         HttpStatus.SERVICE_UNAVAILABLE,
       );
+    } finally {
+      clearTimeout(timeout);
     }
   }
 

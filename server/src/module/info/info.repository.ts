@@ -84,6 +84,7 @@ function flattenGroupedSchedules(grouped: unknown[]): MovieScheduleEntity[] {
 @Injectable()
 export class InfoRepository {
   private readonly aiServiceBaseUrl = process.env.AI_SERVICE_URL ?? 'http://localhost:8000';
+  private readonly aiTimeoutMs = Number(process.env.AI_SERVICE_TIMEOUT_MS ?? 60000);
   private readonly historyDir = path.resolve(
     process.cwd(),
     process.env.CHAT_HISTORY_DIR ?? 'chat_history',
@@ -91,6 +92,9 @@ export class InfoRepository {
 
 
     async getMovieSchedules(input: RepositoryInput): Promise<InfoResponseEntity> {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), this.aiTimeoutMs);
+
         try {
         const endpoint = new URL('/api/v1/movie-schedules', this.aiServiceBaseUrl);
         endpoint.searchParams.set('movie_url', input.movieUrl);
@@ -98,7 +102,10 @@ export class InfoRepository {
             endpoint.searchParams.set('debug_html', 'true');
         }
 
-        const response = await fetch(endpoint.toString(), { method: 'GET' });
+        const response = await fetch(endpoint.toString(), {
+          method: 'GET',
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
             throw new HttpException(
@@ -133,6 +140,10 @@ export class InfoRepository {
             schedules,
         };
         } catch (error) {
+          if (error instanceof Error && error.name === 'AbortError') {
+            throw new HttpException('AI service timeout', HttpStatus.GATEWAY_TIMEOUT);
+          }
+
         if (error instanceof HttpException) {
             throw error;
         }
@@ -141,6 +152,8 @@ export class InfoRepository {
             'Cannot reach AI service',
             HttpStatus.SERVICE_UNAVAILABLE,
         );
+          } finally {
+            clearTimeout(timeout);
         }
     }
 }

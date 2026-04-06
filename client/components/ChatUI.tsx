@@ -8,6 +8,7 @@ import MovieInfo from "./MovieInfo";
 import {
   useGetChatHistoryQuery,
   useGetChatSessionsQuery,
+  useLazyGetChatHistoryQuery,
   useSendMessageMutation,
 } from "@/store/api/[module]/chatApi";
 
@@ -24,29 +25,27 @@ interface Conversation {
   title: string;
 }
 
-interface MovieScheduleEntity {
-  theatre: string;
-  day: string;
-  time: string;
-}
-
 export default function ChatUI() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [chatError, setChatError] = useState<string | null>(null);
   const [sendMessageMutation, { isLoading: loading }] = useSendMessageMutation();
+  const [triggerGetChatHistory] = useLazyGetChatHistoryQuery();
   const { data: sessionIds = [], refetch: refetchSessions } = useGetChatSessionsQuery();
   const {
     data: chatHistory = [],
-    refetch: refetchHistory,
     isFetching: loadingHistory,
   } = useGetChatHistoryQuery(
     activeSessionId ? { sessionId: activeSessionId } : skipToken,
+    { refetchOnMountOrArgChange: true },
   );
 
   const [movieIds, setMovieIds] = useState<string[]>([]);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showMovieInfo, setShowMovieInfo] = useState(false);
+  const [model, setModel] = useState<"baseline" | "agent">("agent");
+  const hasActiveSession = Boolean(activeSessionId);
 
   const conversations: Conversation[] = useMemo(
     () =>
@@ -58,36 +57,61 @@ export default function ChatUI() {
   );
 
   const messages: Message[] = useMemo(
-    () =>
-      chatHistory.map((m, index) => ({
-        id: `${activeSessionId ?? "no-session"}-${index}`,
-        role: m.role === "user" ? "user" : "assistant",
-        text: m.message,
-      })),
-    [chatHistory, activeSessionId],
+    () => {
+      const historyMessages: Message[] = hasActiveSession
+        ? chatHistory.map((m, index): Message => ({
+            id: `${activeSessionId ?? "no-session"}-${index}`,
+            role: m.role === "user" ? "user" : "assistant",
+            text: m.message,
+          }))
+        : [];
+
+      return [...historyMessages, ...optimisticMessages];
+    },
+    [chatHistory, activeSessionId, hasActiveSession, optimisticMessages],
   );
 
   async function sendMessage(text: string) {
-    if (!text.trim()) return;
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
 
     setInput("");
     setChatError(null);
+    const requestSessionId = activeSessionId ?? undefined;
+
+    setOptimisticMessages((prev) => [
+      ...prev,
+      {
+        id: `pending-${Date.now()}`,
+        role: "user",
+        text: trimmedText,
+      },
+    ]);
 
     try {
       const data = await sendMessageMutation({
-        message: text,
-        sessionId: activeSessionId ?? undefined,
+        message: trimmedText,
+        sessionId: requestSessionId,
+        model,
       }).unwrap();
 
-      const nextSessionId = data.sessionId ?? activeSessionId;
-      if (nextSessionId && nextSessionId !== activeSessionId) {
-        setActiveSessionId(nextSessionId);
+      const nextSessionId = data.sessionId?.trim() || requestSessionId || null;
+
+      if (!nextSessionId) {
+        throw new Error("Không nhận được sessionId từ server.");
       }
 
       await refetchSessions();
-      if (nextSessionId) {
-        await refetchHistory();
+
+      // Force network fetch to avoid stale/empty cache on the first message of a session.
+      await triggerGetChatHistory({ sessionId: nextSessionId }, false).unwrap();
+
+      if (nextSessionId !== activeSessionId) {
+        setActiveSessionId(nextSessionId);
       }
+
+      // Server history is now synced, clear optimistic echoes.
+      setOptimisticMessages([]);
 
       const nextMovieIds = Array.isArray(data.movieIds)
         ? data.movieIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
@@ -95,8 +119,17 @@ export default function ChatUI() {
 
       setMovieIds(nextMovieIds);
       setShowMovieInfo(nextMovieIds.length > 0);
-    } catch (error) {
-      setChatError("Gửi tin nhắn không thành công, vui lòng thử lại sau.");
+    } catch (error: unknown) {
+      setOptimisticMessages([]);
+      const fallbackMessage = "Gửi tin nhắn không thành công, vui lòng thử lại sau.";
+      if (error instanceof Error && error.message) {
+        setChatError(error.message);
+        return;
+      }
+
+      type ApiErrorShape = { data?: { message?: string } };
+      const maybeApiError = error as ApiErrorShape;
+      setChatError(maybeApiError.data?.message ?? fallbackMessage);
     }
   }
 
@@ -112,10 +145,17 @@ export default function ChatUI() {
           <Sidebar
             conversations={conversations}
             activeId={activeSessionId ?? ""}
-            onSelectConversation={(id) => setActiveSessionId(id)}
+            onSelectConversation={(id) => {
+              setActiveSessionId(id);
+              setOptimisticMessages([]);
+            }}
             onNewChat={() => {
               setActiveSessionId(null);
               setInput("");
+              setOptimisticMessages([]);
+              setChatError(null);
+              setMovieIds([]);
+              setShowMovieInfo(false);
             }}
             onToggle={() => setShowSidebar(!showSidebar)}
           />
@@ -141,10 +181,12 @@ export default function ChatUI() {
         <ChatArea
           title={activeTitle}
           messages={messages}
-          loading={loading || loadingHistory}
+          loading={loading || (hasActiveSession && loadingHistory)}
           input={input}
           onInputChange={setInput}
           onSendMessage={sendMessage}
+          model={model}
+          onModelChange={setModel}
           onToggleSidebar={() => setShowSidebar(!showSidebar)}
           onToggleMovieInfo={() => setShowMovieInfo(!showMovieInfo)}
           sidebarVisible={showSidebar}

@@ -4,6 +4,7 @@ export type ChatRequest = {
   message: string;
   userId?: string;
   sessionId?: string;
+  model?: "baseline" | "agent";
 };
 
 export type ChatResponse = {

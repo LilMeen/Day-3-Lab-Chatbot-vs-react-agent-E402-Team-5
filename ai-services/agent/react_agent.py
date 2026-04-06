@@ -1,5 +1,6 @@
 import re
 import json
+import time
 from typing import Optional
 
 from agent.memory import ShortTermMemory
@@ -46,33 +47,46 @@ class ReActAgent:
     # LLM call — plain text with stop token
     # ------------------------------------------------------------------
 
-    def _call_llm(self, system_prompt: str, user_prompt: str) -> str:
-        if self.provider == "openai":
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                stop=[STOP_TOKEN],
-                temperature=0,
-            )
-            return response.choices[0].message.content or ""
+    def _call_llm(self, system_prompt: str, user_prompt: str, max_retries: int = 3) -> str:
+        """Call the LLM with exponential backoff retry on failure."""
+        for attempt in range(max_retries):
+            try:
+                if self.provider == "openai":
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        stop=[STOP_TOKEN],
+                        temperature=0,
+                    )
+                    return response.choices[0].message.content or ""
 
-        elif self.provider == "gemini":
-            full_prompt = f"{system_prompt}\n\n{user_prompt}"
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=full_prompt,
-                config={
-                    "stop_sequences": [STOP_TOKEN],
-                    "temperature": 0,
-                },
-            )
-            return response.text or ""
+                elif self.provider == "gemini":
+                    full_prompt = f"{system_prompt}\n\n{user_prompt}"
+                    response = self.client.models.generate_content(
+                        model=self.model,
+                        contents=full_prompt,
+                        config={
+                            "stop_sequences": [STOP_TOKEN],
+                            "temperature": 0,
+                        },
+                    )
+                    return response.text or ""
+
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    delay = (2 ** attempt) * 2  # 2s, 4s, 8s
+                    print(f"\n[LLM Error] {e} — retrying in {delay}s (attempt {attempt + 1}/{max_retries})...")
+                    time.sleep(delay)
+                else:
+                    print(f"\n[LLM Error] All {max_retries} attempts failed: {e}")
+                    return ""
+        return ""
 
     # ------------------------------------------------------------------
-    # Hallucination removal (CyBench-style)
+    # Hallucination removal
     # ------------------------------------------------------------------
 
     def _remove_hallucinations(self, response: str) -> str:
@@ -230,7 +244,10 @@ class ReActAgent:
             cleaned_response = self._remove_hallucinations(raw_response)
 
             if not cleaned_response:
-                # If hallucination removal left nothing, force a fallback
+                # Empty after hallucination removal — retry if iterations remain
+                if iteration < self.max_iterations - 1:
+                    print("[Fallback] Empty response after hallucination removal, retrying...")
+                    continue
                 step = ReActStep(
                     reflection="Response was empty after hallucination removal.",
                     plan="Provide a safe fallback answer.",
@@ -244,6 +261,11 @@ class ReActAgent:
 
             # Parse step
             step = self._parse_react_step(cleaned_response)
+
+            # Parse produced neither action nor output — retry if iterations remain
+            if step.action is None and step.output is None and iteration < self.max_iterations - 1:
+                print("[Fallback] Parse returned no action and no output, retrying...")
+                continue
 
             # --- Execute tool if action is set ---
             if step.action:
@@ -279,10 +301,9 @@ class ReActAgent:
         if not final_answer and steps:
             final_answer = steps[-1].tool_result or "Xin lỗi, tôi không thể hoàn thành yêu cầu."
 
-        # Save to cross-turn memory:
-        # response = the final step's formatted text, observation = the user message
+        # Save to cross-turn memory: user message first (cause), agent response second (result)
         final_step_text = self._format_step_as_text(steps[-1]) if steps else ""
-        self.memory.add_entry(session_id, final_step_text, user_message)
+        self.memory.add_entry(session_id, user_message, final_step_text)
 
         return AgentResponse(
             session_id=session_id,

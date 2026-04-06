@@ -1,0 +1,8 @@
+user: hi
+chatbot: Xin lỗi, tôi chỉ có thể hỗ trợ các câu hỏi liên quan đến rạp chiếu phim như lịch chiếu, giá vé, khuyến mãi và gợi ý phim. Bạn có câu hỏi nào về phim không? 🎬
+user: nay bên cinestart có chiếu phim gì không nhề
+chatbot: Chào bạn!
+
+Để biết chính xác các phim đang chiếu và suất chiếu hôm nay tại Cinestar, bạn vui lòng truy cập trực tiếp **website hoặc ứng dụng của Cinestar** nhé. Ở đó có đầy đủ thông tin và bạn có thể đặt vé luôn ạ.
+
+Nếu bạn muốn hỏi về một bộ phim cụ thể nào đó, mình có thể giúp bạn tìm hiểu thêm!
