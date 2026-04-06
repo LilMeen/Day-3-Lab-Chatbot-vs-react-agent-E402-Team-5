@@ -65,9 +65,27 @@ class ChatResponse(BaseModel):
     bot_type: str
     reply: str
     session_id: str = ""
-
+class MovieScheduleResponse(BaseModel):
+    status: str
+    movie_url: str
+    total: int
+    schedules: list[dict[str, Any]]
 
 # --- ENDPOINTS ---
+
+@router.get("/movie-schedules", response_model=MovieScheduleResponse)
+async def movie_schedules(movie_url: str, debug_html: bool = False):
+    """Lấy lịch chiếu phim từ URL trang movie của Cinestar."""
+    try:
+        schedules = get_movie_schedules(movie_url=movie_url, debug_html=debug_html)
+        return MovieScheduleResponse(
+            status="success",
+            movie_url=movie_url,
+            total=_count_showtimes(schedules),
+            schedules=schedules,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/baseline", response_model=ChatResponse)
 async def chat_baseline(request: ChatRequest):
@@ -102,3 +120,27 @@ async def chat_react_agent(request: ChatRequest):
             reply="Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ.",
             session_id=request.session_id,
         )
+    
+    
+def _count_showtimes(grouped_schedules: list[dict[str, Any]]) -> int:
+    total = 0
+    for locality in grouped_schedules:
+        theatres = locality.get("theatres", [])
+        if not isinstance(theatres, list):
+            continue
+
+        for theatre in theatres:
+            movies = theatre.get("movies", [])
+            if not isinstance(movies, list):
+                continue
+
+            for movie in movies:
+                schedule = movie.get("schedule", [])
+                if not isinstance(schedule, list):
+                    continue
+
+                for day_item in schedule:
+                    showtimes = day_item.get("showtimes", [])
+                    if isinstance(showtimes, list):
+                        total += len(showtimes)
+    return total
