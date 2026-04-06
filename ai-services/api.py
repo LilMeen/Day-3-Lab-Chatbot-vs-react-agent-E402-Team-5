@@ -18,6 +18,59 @@ _react_agent = ReActAgent()
 # LLM caller for baseline (no tools, no ReAct)
 # ------------------------------------------------------------------
 
+OUT_OF_DOMAIN_REPLY = (
+    "Xin lỗi, tôi chỉ có thể hỗ trợ các câu hỏi liên quan đến rạp chiếu phim "
+    "như lịch chiếu, giá vé, khuyến mãi và gợi ý phim. "
+    "Bạn có câu hỏi nào về phim không? 🎬"
+)
+
+_DOMAIN_CLASSIFIER_PROMPT = """You are a domain classifier for a movie theater chatbot.
+Determine if the user's message is related to the movie theater domain.
+
+IN-DOMAIN topics: movies, showtimes, ticket prices, promotions, theater locations, seat types, film genres, booking, concessions.
+OUT-OF-DOMAIN topics: everything else (politics, cooking, math, coding, weather, health, sports unrelated to movies, etc.).
+
+Reply with ONLY one word: IN or OUT.
+
+User message: {message}"""
+
+
+def _is_out_of_domain(user_message: str) -> bool:
+    """Use LLM as a fast classifier to detect out-of-domain messages."""
+    prompt = _DOMAIN_CLASSIFIER_PROMPT.format(message=user_message)
+    provider = config.LLM_PROVIDER.lower()
+
+    try:
+        if provider == "openai":
+            from openai import OpenAI
+            client = OpenAI(api_key=config.OPENAI_API_KEY)
+            response = client.chat.completions.create(
+                model=config.OPENAI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+                max_tokens=5,
+            )
+            verdict = (response.choices[0].message.content or "").strip().upper()
+
+        elif provider == "gemini":
+            from google import genai
+            client = genai.Client(api_key=config.GEMINI_API_KEY)
+            response = client.models.generate_content(
+                model=config.GEMINI_MODEL,
+                contents=prompt,
+                config={"temperature": 0},
+            )
+            verdict = (response.text or "").strip().upper()
+
+        else:
+            return False  # Unknown provider — let it pass
+
+        return verdict.startswith("OUT")
+
+    except Exception:
+        return False  # On classifier error — let it pass, don't block user
+
+
 def _call_llm_baseline(user_message: str) -> str:
     """Call the LLM directly with a simple system prompt — no tools, no ReAct loop."""
     system_prompt = (
@@ -92,13 +145,11 @@ async def movie_schedules(movie_url: str, debug_html: bool = False):
 @router.post("/baseline", response_model=ChatResponse)
 async def chat_baseline(request: ChatRequest):
     """Bot cơ bản: chỉ dùng LLM, KHÔNG dùng tool hay ReAct loop."""
+    if _is_out_of_domain(request.user_message):
+        return ChatResponse(status="out_of_domain", bot_type="baseline", reply=OUT_OF_DOMAIN_REPLY)
     try:
         reply = _call_llm_baseline(request.user_message)
-        return ChatResponse(
-            status="success",
-            bot_type="baseline",
-            reply=reply,
-        )
+        return ChatResponse(status="success", bot_type="baseline", reply=reply)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -106,15 +157,12 @@ async def chat_baseline(request: ChatRequest):
 @router.post("/agent", response_model=ChatResponse)
 async def chat_react_agent(request: ChatRequest):
     """Bot thông minh: dùng ReAct Agent với 7 tools để tra cứu dữ liệu thực tế."""
+    if _is_out_of_domain(request.user_message):
+        return ChatResponse(status="out_of_domain", bot_type="react_agent", reply=OUT_OF_DOMAIN_REPLY)
     try:
         session_id = request.session_id or str(uuid.uuid4())
         response = _react_agent.run(session_id, request.user_message)
-        return ChatResponse(
-            status="success",
-            bot_type="react_agent",
-            reply=response.final_answer,
-            session_id=session_id,
-        )
+        return ChatResponse(status="success", bot_type="react_agent", reply=response.final_answer, session_id=session_id)
     except Exception as e:
         return ChatResponse(
             status="error",
