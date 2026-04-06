@@ -1,5 +1,5 @@
 export interface ChatResponseEntity {
   reply: string;
-  conversationId?: string;
+  sessionId?: string;
   model?: string;
 }
