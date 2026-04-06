@@ -1,7 +1,7 @@
 import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Any
 
@@ -28,6 +28,23 @@ router = APIRouter(prefix="/api/v1", tags=["AI Chat Services"])
 _react_agent = ReActAgent()
 LLM_TIMEOUT_SEC = int(os.getenv("LLM_TIMEOUT_SEC", "45"))
 
+
+def _effective_provider() -> str:
+    provider = (config.LLM_PROVIDER or "openai").strip().lower()
+    if provider not in {"openai", "gemini"}:
+        provider = "openai"
+    return provider
+
+
+print(
+    "[ai-services] provider=",
+    _effective_provider(),
+    "openai_key=",
+    bool(config.OPENAI_API_KEY),
+    "gemini_key=",
+    bool(config.GEMINI_API_KEY),
+)
+
 # ------------------------------------------------------------------
 # LLM caller for baseline (no tools, no ReAct)
 # ------------------------------------------------------------------
@@ -52,7 +69,7 @@ User message: {message}"""
 def _is_out_of_domain(user_message: str) -> bool:
     """Use LLM as a fast classifier to detect out-of-domain messages."""
     prompt = _DOMAIN_CLASSIFIER_PROMPT.format(message=user_message)
-    provider = config.LLM_PROVIDER.lower()
+    provider = _effective_provider()
 
     try:
         if provider == "openai":
@@ -101,7 +118,7 @@ def _call_llm_baseline(user_message: str) -> str:
         "Hãy trả lời câu hỏi của khách hàng về phim ảnh, suất chiếu và giá vé một cách ngắn gọn và hữu ích."
     )
 
-    provider = config.LLM_PROVIDER.lower()
+    provider = _effective_provider()
 
     if provider == "openai":
         from openai import OpenAI
@@ -228,6 +245,17 @@ async def api_get_discount():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/debug/provider")
+async def api_debug_provider():
+    return {
+        "provider": _effective_provider(),
+        "openaiKeySet": bool(config.OPENAI_API_KEY),
+        "geminiKeySet": bool(config.GEMINI_API_KEY),
+        "openaiModel": config.OPENAI_MODEL,
+        "geminiModel": config.GEMINI_MODEL,
+    }
+
 @router.post("/baseline", response_model=ChatResponse)
 async def chat_baseline(request: ChatRequest):
     """Bot cơ bản: chỉ dùng LLM, KHÔNG dùng tool hay ReAct loop."""
@@ -246,10 +274,11 @@ async def chat_baseline(request: ChatRequest):
             )
         return ChatResponse(status="success", bot_type="baseline", reply=reply)
     except Exception as e:
+        print(e)
         return ChatResponse(
             status="error",
             bot_type="baseline",
-            reply="Baseline model gặp lỗi nội bộ. Vui lòng thử lại sau.",
+            reply=f"Baseline model gặp lỗi nội bộ. Vui lòng thử lại sau. Mã lỗi: {e}",
             session_id=request.session_id,
         )
 

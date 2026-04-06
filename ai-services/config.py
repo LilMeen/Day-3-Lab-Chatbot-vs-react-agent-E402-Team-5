@@ -1,10 +1,21 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+_BASE_DIR = Path(__file__).resolve().parent
+_ENV_PATH = _BASE_DIR / ".env"
+
+# Force loading ai-services/.env and override inherited shell/system env values.
+load_dotenv(dotenv_path=_ENV_PATH, override=True)
+
+def _normalized_provider(raw_provider: str) -> str:
+	value = (raw_provider or "").strip().lower()
+	if value in {"openai", "gemini"}:
+		return value
+	return "openai"
 
 # LLM Provider: "openai" or "gemini"
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
+LLM_PROVIDER = _normalized_provider(os.getenv("LLM_PROVIDER", "openai"))
 
 # OpenAI settings
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")

@@ -1,4 +1,0 @@
-user: hi
-chatbot: Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ.
-user: hi
-chatbot: Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ.

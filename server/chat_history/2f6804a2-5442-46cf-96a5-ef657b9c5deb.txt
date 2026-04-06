@@ -1,0 +1,4 @@
+user: hi, nay học toán không bro
+chatbot: Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ.
+user: hi, nay học toán không bro
+chatbot: Baseline model gặp lỗi nội bộ. Vui lòng thử lại sau.

@@ -43,6 +43,7 @@ class ReActAgent:
                 f"Unsupported LLM provider: '{self.provider}'. Use 'openai' or 'gemini'."
             )
 
+
     # ------------------------------------------------------------------
     # LLM call — plain text with stop token
     # ------------------------------------------------------------------
