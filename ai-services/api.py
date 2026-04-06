@@ -2,9 +2,11 @@ import os
 import uuid
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from typing import Any
 
 import config
 from agent.react_agent import ReActAgent
+from crawling.crawl import get_movie_schedules
 
 # Khởi tạo Router
 router = APIRouter(prefix="/api/v1", tags=["AI Chat Services"])
