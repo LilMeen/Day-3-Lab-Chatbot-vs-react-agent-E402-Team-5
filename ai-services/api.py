@@ -1,6 +1,7 @@
 import os
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from crawling.crawl import get_movie_schedules
 
 
 # Khởi tạo Router
@@ -16,6 +17,13 @@ class ChatResponse(BaseModel):
     status: str
     bot_type: str
     reply: str
+
+
+class MovieScheduleResponse(BaseModel):
+    status: str
+    movie_url: str
+    total: int
+    schedules: list[list[str]]
 
 
 
@@ -48,3 +56,18 @@ async def chat_react_agent(request: ChatRequest):
             bot_type="fallback",
             reply="Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ."
         )
+
+
+@router.get("/movie-schedules", response_model=MovieScheduleResponse)
+async def movie_schedules(movie_url: str, debug_html: bool = False):
+    """Lấy lịch chiếu phim từ URL trang movie của Cinestar."""
+    try:
+        schedules = get_movie_schedules(movie_url=movie_url, debug_html=debug_html)
+        return MovieScheduleResponse(
+            status="success",
+            movie_url=movie_url,
+            total=len(schedules),
+            schedules=schedules,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
