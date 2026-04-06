@@ -1,0 +1,42 @@
+[
+  {
+    "id": "th_001",
+    "name": "CGV Vincom Center",
+    "location": "Ho Chi Minh City, Vincom Center Dong Khoi",
+    "screens": [
+      {"screen_id": "scr_001", "type": "IMAX", "capacity": 300},
+      {"screen_id": "scr_002", "type": "Standard", "capacity": 200},
+      {"screen_id": "scr_003", "type": "4DX", "capacity": 120}
+    ]
+  },
+  {
+    "id": "th_002",
+    "name": "Lotte Cinema Nam Saigon",
+    "location": "Ho Chi Minh City, Lotte Mart District 7",
+    "screens": [
+      {"screen_id": "scr_004", "type": "Standard", "capacity": 180},
+      {"screen_id": "scr_005", "type": "VIP", "capacity": 50},
+      {"screen_id": "scr_006", "type": "Standard", "capacity": 200}
+    ]
+  },
+  {
+    "id": "th_003",
+    "name": "Galaxy Cinema Nguyen Du",
+    "location": "Ho Chi Minh City, Nguyen Du Street District 1",
+    "screens": [
+      {"screen_id": "scr_007", "type": "Standard", "capacity": 150},
+      {"screen_id": "scr_008", "type": "IMAX", "capacity": 280},
+      {"screen_id": "scr_009", "type": "Standard", "capacity": 160}
+    ]
+  },
+  {
+    "id": "th_004",
+    "name": "BHD Star Pham Hung",
+    "location": "Ho Chi Minh City, Pham Hung Street District 6",
+    "screens": [
+      {"screen_id": "scr_010", "type": "Standard", "capacity": 170},
+      {"screen_id": "scr_011", "type": "4DX", "capacity": 100},
+      {"screen_id": "scr_012", "type": "VIP", "capacity": 40}
+    ]
+  }
+]
