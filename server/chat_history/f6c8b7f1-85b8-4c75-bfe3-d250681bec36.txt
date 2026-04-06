@@ -1,4 +1,0 @@
-user: Lich chieu phim Conan toi nay o HCM
-chatbot: Chào bạn! Để mình kiểm tra lịch chiếu phim Conan tối nay ở TP.HCM cho bạn nhé.
-
-Bạn có thể cho mình biết bạn muốn xem ở rạp nào (ví dụ: CGV, Lotte Cinema, BHD...) hoặc khu vực nào (ví dụ: Quận 1, Gò Vấp, Thủ Đức) không? Lịch chiếu sẽ khác nhau giữa các rạp đó ạ.

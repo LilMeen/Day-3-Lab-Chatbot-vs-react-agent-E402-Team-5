@@ -1,8 +1,0 @@
-user: Lich chieu phim Conan toi nay o HCM
-chatbot: Chào bạn! Rất tiếc, tôi không có thông tin lịch chiếu phim Conan tối nay ở TP.HCM theo thời gian thực.
-
-Để xem lịch chiếu chính xác nhất, bạn vui lòng truy cập:
-*   **Website hoặc ứng dụng của các cụm rạp:** CGV, Lotte Cinema, Galaxy Cinema, BHD Star...
-*   **Các trang đặt vé trực tuyến:** MoMo, ZaloPay, Ticketbox...
-
-Bạn chỉ cần chọn rạp và ngày chiếu là sẽ thấy ngay nhé! Có cần tôi giúp gì khác không?

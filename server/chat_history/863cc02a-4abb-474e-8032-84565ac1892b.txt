@@ -1,0 +1,8 @@
+user: hi
+chatbot: Baseline model gặp lỗi nội bộ. Vui lòng thử lại sau.
+user: hi
+chatbot: Chào bạn! Rất vui được gặp bạn. Tôi có thể giúp gì cho bạn về phim ảnh, suất chiếu hay giá vé hôm nay không? 😊
+user: hi
+chatbot: Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ.
+user: hi
+chatbot: Hệ thống AI đang quá tải hoặc lỗi mạng. Vui lòng liên hệ nhân viên hỗ trợ.

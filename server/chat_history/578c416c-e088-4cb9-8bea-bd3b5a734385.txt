@@ -1,9 +1,0 @@
-user: Lich chieu phim Conan toi nay o HCM
-chatbot: Rất tiếc, tôi không tìm thấy suất chiếu nào cho phim **Conan** tối nay ở TP.HCM.
-
-Tuy nhiên, có một số phim khác đang chiếu tối nay mà bạn có thể quan tâm:
-*   **Dune: Part Three** tại CGV Vincom Center lúc 19:00 (IMAX)
-*   **Avengers: Secret Wars** tại BHD Star Phạm Hùng lúc 20:00 (Standard)
-*   **The Batman: Arkham** tại CGV Vincom Center lúc 18:30 (4DX), Galaxy Cinema Nguyễn Du lúc 21:00 (Standard), hoặc Lotte Cinema Nam Sài Gòn lúc 20:00 (VIP)
-
-Bạn có muốn tôi tìm lịch chiếu hoặc giá vé cho một trong những phim này không?

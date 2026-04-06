@@ -1,2 +1,0 @@
-user: Xin chao
-chatbot: Xin lỗi, tôi chỉ có thể hỗ trợ các câu hỏi liên quan đến rạp chiếu phim như lịch chiếu, giá vé, khuyến mãi và gợi ý phim. Bạn có câu hỏi nào về phim không? 🎬

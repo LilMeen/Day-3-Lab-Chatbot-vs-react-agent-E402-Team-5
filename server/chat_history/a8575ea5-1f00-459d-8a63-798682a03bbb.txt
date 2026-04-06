@@ -1,8 +1,0 @@
-user: nay bên cinestart có phim gì nhề
-chatbot: Chào bạn! Hiện tại Cinestar đang có nhiều phim hay lắm. Một số phim nổi bật có thể kể đến như: [Tên phim bom tấn mới nhất], [Tên phim gia đình/hoạt hình], [Tên phim kinh dị/hành động đang hot]...
-
-Để xem lịch chiếu cụ thể và đầy đủ các phim đang chiếu tại rạp Cinestar gần bạn nhất, bạn vui lòng truy cập website hoặc ứng dụng của Cinestar nhé! Có cả thông tin về suất chiếu và giá vé luôn đó.
-user: hi
-chatbot: Baseline model gặp lỗi nội bộ. Vui lòng thử lại sau.
-user: hi
-chatbot: Baseline model gặp lỗi nội bộ. Vui lòng thử lại sau.
