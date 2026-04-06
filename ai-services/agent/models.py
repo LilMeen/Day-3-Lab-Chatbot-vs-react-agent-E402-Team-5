@@ -21,3 +21,5 @@ class AgentResponse(BaseModel):
     steps: list[ReActStep]
     final_answer: str
     tools_used: list[str]
+    awaiting_input: bool = False        # True when smart_followup interrupted
+    followup_question: str = ""         # The clarifying question to show user

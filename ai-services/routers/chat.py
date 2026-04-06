@@ -4,11 +4,15 @@ from typing import Optional
 
 from agent.react_agent import ReActAgent
 from agent.models import ReActStep
+from tools.cinestar_tools import set_runtime_mode
 
 router = APIRouter(prefix="/agent", tags=["agent"])
 
 # Single agent instance shared across requests (holds in-memory session store)
 _agent = ReActAgent()
+
+# API mode: smart_followup returns awaiting_input instead of blocking input()
+set_runtime_mode("api")
 
 
 # ------------------------------------------------------------------
@@ -39,6 +43,8 @@ class ChatResponse(BaseModel):
     steps: list[ReActStepOut]
     final_answer: str
     tools_used: list[str]
+    awaiting_input: bool = False
+    followup_question: str = ""
 
 
 class ResetRequest(BaseModel):
@@ -77,6 +83,8 @@ def chat(req: ChatRequest):
         steps=[_step_to_out(s) for s in response.steps],
         final_answer=response.final_answer,
         tools_used=response.tools_used,
+        awaiting_input=response.awaiting_input,
+        followup_question=response.followup_question,
     )
 
 

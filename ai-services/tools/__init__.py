@@ -1,8 +1,2 @@
-# Import all tools to trigger registration
-from tools.search_movie_showtimes import search_movie_showtimes
-from tools.get_ticket_price import get_ticket_price
-from tools.get_promotions import get_promotions
-from tools.recommend_best_option import recommend_best_option
-from tools.compare_ticket_prices import compare_ticket_prices
-from tools.smart_followup import smart_followup
-from tools.auto_scrape_and_update import auto_scrape_and_update
+# Import all tool modules so they register themselves in TOOL_REGISTRY
+from tools import cinestar_tools  # noqa: F401
