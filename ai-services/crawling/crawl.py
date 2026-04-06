@@ -71,6 +71,47 @@ def _extract_movie_name(next_data: dict[str, Any], soup: BeautifulSoup) -> str:
 	return "Unknown Movie"
 
 
+def _extract_movie_description(next_data: dict[str, Any], soup: BeautifulSoup) -> str:
+	page_props = next_data.get("props", {}).get("pageProps", {})
+	if isinstance(page_props, dict):
+		movie_data = page_props.get("movieData") or page_props.get("movie")
+		if isinstance(movie_data, dict):
+			for key in ("description", "description_vn", "description_en", "content"):
+				value = movie_data.get(key)
+				if isinstance(value, str) and value.strip():
+					return BeautifulSoup(value, "html.parser").get_text(" ", strip=True)
+
+	meta = soup.find("meta", attrs={"name": "description"})
+	if meta and isinstance(meta.get("content"), str) and meta.get("content").strip():
+		return meta.get("content").strip()
+
+	return ""
+
+
+def _extract_movie_poster(next_data: dict[str, Any], soup: BeautifulSoup) -> str:
+	page_props = next_data.get("props", {}).get("pageProps", {})
+	if isinstance(page_props, dict):
+		movie_data = page_props.get("movieData") or page_props.get("movie")
+		if isinstance(movie_data, dict):
+			for key in (
+				"thumbnail",
+				"image",
+				"poster",
+				"poster_url",
+				"cover",
+				"banner",
+			):
+				value = movie_data.get(key)
+				if isinstance(value, str) and value.strip():
+					return value.strip()
+
+	og_image = soup.find("meta", attrs={"property": "og:image"})
+	if og_image and isinstance(og_image.get("content"), str) and og_image.get("content").strip():
+		return og_image.get("content").strip()
+
+	return ""
+
+
 def _parse_rows_from_next_data(next_data: dict[str, Any]) -> List[tuple[str, str, str]]:
 	results: List[tuple[str, str, str]] = []
 	seen: set[tuple[str, str, str]] = set()
@@ -155,7 +196,7 @@ def _group_schedules(
 	return result
 
 
-def get_movie_schedules(movie_url: str, debug_html: bool = False) -> List[dict[str, Any]]:
+def get_movie_schedules(movie_url: str, debug_html: bool = False) -> dict[str, Any]:
 	"""
 	Crawl movie page and return grouped schedules by:
 	Locality -> Theatre -> Movie Name -> Showtimes (grouped by day)
@@ -171,19 +212,42 @@ def get_movie_schedules(movie_url: str, debug_html: bool = False) -> List[dict[s
 
 	next_data_script = soup.find("script", id="__NEXT_DATA__")
 	if not next_data_script or not next_data_script.string:
-		return []
+		return {
+			"movie": {
+				"title": "Unknown Movie",
+				"description": "",
+				"poster_url": "",
+			},
+			"schedules": [],
+		}
 
 	try:
 		next_data = json.loads(next_data_script.string)
 	except json.JSONDecodeError:
-		return []
+		return {
+			"movie": {
+				"title": "Unknown Movie",
+				"description": "",
+				"poster_url": "",
+			},
+			"schedules": [],
+		}
 
 	movie_name = _extract_movie_name(next_data, soup)
+	movie_description = _extract_movie_description(next_data, soup)
+	movie_poster = _extract_movie_poster(next_data, soup)
 	rows = _parse_rows_from_next_data(next_data)
-	return _group_schedules(rows, movie_name)
+	return {
+		"movie": {
+			"title": movie_name,
+			"description": movie_description,
+			"poster_url": movie_poster,
+		},
+		"schedules": _group_schedules(rows, movie_name),
+	}
 
 
-def get_movie_schedule(movie_url: str) -> List[dict[str, Any]]:
+def get_movie_schedule(movie_url: str) -> dict[str, Any]:
 	"""Backward-compatible alias."""
 	return get_movie_schedules(movie_url)
 

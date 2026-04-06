@@ -10,6 +10,7 @@ export type ChatResponse = {
   reply: string;
   sessionId?: string;
   model?: string;
+  movieIds?: string[];
 };
 
 export type ChatMessage = {

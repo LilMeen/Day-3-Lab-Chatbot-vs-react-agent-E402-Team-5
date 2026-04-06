@@ -1,11 +1,15 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { skipToken } from "@reduxjs/toolkit/query";
+import React, { useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import ChatArea from "./ChatArea";
 import MovieInfo from "./MovieInfo";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import {
+  useGetChatHistoryQuery,
+  useGetChatSessionsQuery,
+  useSendMessageMutation,
+} from "@/store/api/[module]/chatApi";
 
 type Role = "user" | "assistant";
 
@@ -18,8 +22,6 @@ interface Message {
 interface Conversation {
   id: string;
   title: string;
-  messages: Message[];
-  conversationId?: string;
 }
 
 interface MovieScheduleEntity {
@@ -28,105 +30,79 @@ interface MovieScheduleEntity {
   time: string;
 }
 
-interface MovieInfo {
-  movieId: string;
-  movieUrl: string;
-  title?: string;
-  total: number;
-  schedules: MovieScheduleEntity[];
-}
-
 export default function ChatUI() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeId, setActiveId] = useState<string>("");
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [movieInfo, setMovieInfo] = useState<MovieInfo | null>(null);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [sendMessageMutation, { isLoading: loading }] = useSendMessageMutation();
+  const { data: sessionIds = [], refetch: refetchSessions } = useGetChatSessionsQuery();
+  const {
+    data: chatHistory = [],
+    refetch: refetchHistory,
+    isFetching: loadingHistory,
+  } = useGetChatHistoryQuery(
+    activeSessionId ? { sessionId: activeSessionId } : skipToken,
+  );
+
+  const [movieIds, setMovieIds] = useState<string[]>([]);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showMovieInfo, setShowMovieInfo] = useState(false);
 
-  // Initialize first conversation on mount
-  useEffect(() => {
-    if (conversations.length === 0) {
-      const initialId = String(Date.now());
-      setConversations([
-        {
-          id: initialId,
-          title: "New chat",
-          messages: [],
-        }
-      ]);
-      setActiveId(initialId);
-    }
-  }, []);
+  const conversations: Conversation[] = useMemo(
+    () =>
+      sessionIds.map((id) => ({
+        id,
+        title: `Session ${id.slice(0, 8)}`,
+      })),
+    [sessionIds],
+  );
 
-  const activeConv = conversations.find((c) => c.id === activeId) ?? conversations[0];
+  const messages: Message[] = useMemo(
+    () =>
+      chatHistory.map((m, index) => ({
+        id: `${activeSessionId ?? "no-session"}-${index}`,
+        role: m.role === "user" ? "user" : "assistant",
+        text: m.message,
+      })),
+    [chatHistory, activeSessionId],
+  );
 
   async function sendMessage(text: string) {
     if (!text.trim()) return;
-    
-    const msg: Message = { id: String(Date.now()), role: "user", text };
-    setConversations((prev) =>
-      prev.map((c) => (c.id === activeConv.id ? { ...c, messages: [...c.messages, msg] } : c))
-    );
+
     setInput("");
-    setLoading(true);
+    setChatError(null);
 
     try {
-      const response = await fetch(`${API_BASE}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          conversationId: activeConv.conversationId,
-        }),
-      });
+      const data = await sendMessageMutation({
+        message: text,
+        sessionId: activeSessionId ?? undefined,
+      }).unwrap();
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      const nextSessionId = data.sessionId ?? activeSessionId;
+      if (nextSessionId && nextSessionId !== activeSessionId) {
+        setActiveSessionId(nextSessionId);
       }
 
-      const data = await response.json();
-      const reply: Message = {
-        id: String(Date.now() + 1),
-        role: "assistant",
-        text: data.reply || "Xin lỗi, tôi không thể xử lý yêu cầu này.",
-      };
-
-      // Update conversation with conversationId from server
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeConv.id
-            ? {
-                ...c,
-                messages: [...c.messages, reply],
-                conversationId: data.conversationId,
-              }
-            : c
-        )
-      );
-
-      // If backend returns movie info, display it
-      if (data.movieInfo) {
-        setMovieInfo(data.movieInfo);
-        setShowMovieInfo(true);
+      await refetchSessions();
+      if (nextSessionId) {
+        await refetchHistory();
       }
+
+      const nextMovieIds = Array.isArray(data.movieIds)
+        ? data.movieIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+        : [];
+
+      setMovieIds(nextMovieIds);
+      setShowMovieInfo(nextMovieIds.length > 0);
     } catch (error) {
-      console.error("Chat error:", error);
-      const errorReply: Message = {
-        id: String(Date.now() + 1),
-        role: "assistant",
-        text: "Xin lỗi, có lỗi xảy ra khi kết nối tới server.",
-      };
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeConv.id ? { ...c, messages: [...c.messages, errorReply] } : c
-        )
-      );
-    } finally {
-      setLoading(false);
+      setChatError("Gửi tin nhắn không thành công, vui lòng thử lại sau.");
     }
   }
+
+  const activeTitle = activeSessionId
+    ? `Session ${activeSessionId.slice(0, 8)}`
+    : "New chat";
 
   return (
     <div style={{ display: "flex", height: "100vh", backgroundColor: "#f3f4f6", color: "#111827" }}>
@@ -135,13 +111,11 @@ export default function ChatUI() {
         <div style={{ animation: "slideIn 0.3s ease-out" }}>
           <Sidebar
             conversations={conversations}
-            activeId={activeId}
-            onSelectConversation={setActiveId}
+            activeId={activeSessionId ?? ""}
+            onSelectConversation={(id) => setActiveSessionId(id)}
             onNewChat={() => {
-              const id = String(Date.now());
-              const newConv: Conversation = { id, title: "New chat", messages: [] };
-              setConversations((s) => [newConv, ...s]);
-              setActiveId(id);
+              setActiveSessionId(null);
+              setInput("");
             }}
             onToggle={() => setShowSidebar(!showSidebar)}
           />
@@ -149,22 +123,38 @@ export default function ChatUI() {
       )}
 
       {/* Chat Area */}
-      <ChatArea
-        title={activeConv?.title ?? "Chat"}
-        messages={activeConv?.messages ?? []}
-        loading={loading}
-        input={input}
-        onInputChange={setInput}
-        onSendMessage={sendMessage}
-        onToggleSidebar={() => setShowSidebar(!showSidebar)}
-        onToggleMovieInfo={() => setShowMovieInfo(!showMovieInfo)}
-        sidebarVisible={showSidebar}
-      />
+      <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+        {chatError && (
+          <div
+            style={{
+              margin: "8px 12px 0",
+              padding: "8px 12px",
+              borderRadius: 8,
+              backgroundColor: "#fee2e2",
+              color: "#991b1b",
+              fontSize: 14,
+            }}
+          >
+            {chatError}
+          </div>
+        )}
+        <ChatArea
+          title={activeTitle}
+          messages={messages}
+          loading={loading || loadingHistory}
+          input={input}
+          onInputChange={setInput}
+          onSendMessage={sendMessage}
+          onToggleSidebar={() => setShowSidebar(!showSidebar)}
+          onToggleMovieInfo={() => setShowMovieInfo(!showMovieInfo)}
+          sidebarVisible={showSidebar}
+        />
+      </div>
 
       {/* Movie Info with animation */}
       {showMovieInfo && (
         <div style={{ animation: "slideInRight 0.3s ease-out" }}>
-          <MovieInfo movieInfo={movieInfo} />
+          <MovieInfo movieIds={movieIds} />
         </div>
       )}
 

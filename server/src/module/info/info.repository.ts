@@ -13,6 +13,11 @@ interface AiScheduleResponse {
   status: string;
   movie_url: string;
   total: number;
+  movie?: {
+    title?: string;
+    description?: string;
+    poster_url?: string;
+  };
   schedules: unknown[];
 }
 
@@ -120,6 +125,9 @@ export class InfoRepository {
         return {
             movieId: input.movieId,
             movieUrl: data.movie_url ?? input.movieUrl,
+          title: data.movie?.title?.trim() || input.movieId,
+          description: data.movie?.description?.trim() || '',
+          posterUrl: data.movie?.poster_url?.trim() || '',
             total: schedules.length,
             firstSchedule: schedules[0] ?? null,
             schedules,

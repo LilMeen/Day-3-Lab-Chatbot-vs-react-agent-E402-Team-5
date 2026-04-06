@@ -20,10 +20,17 @@ class ChatResponse(BaseModel):
     reply: str
 
 
+class MovieMeta(BaseModel):
+    title: str
+    description: str
+    poster_url: str
+
+
 class MovieScheduleResponse(BaseModel):
     status: str
     movie_url: str
     total: int
+    movie: MovieMeta
     schedules: list[dict[str, Any]]
 
 
@@ -87,11 +94,19 @@ async def chat_react_agent(request: ChatRequest):
 async def movie_schedules(movie_url: str, debug_html: bool = False):
     """Lấy lịch chiếu phim từ URL trang movie của Cinestar."""
     try:
-        schedules = get_movie_schedules(movie_url=movie_url, debug_html=debug_html)
+        data = get_movie_schedules(movie_url=movie_url, debug_html=debug_html)
+        schedules = data.get("schedules", []) if isinstance(data, dict) else []
+        movie = data.get("movie", {}) if isinstance(data, dict) else {}
+
         return MovieScheduleResponse(
             status="success",
             movie_url=movie_url,
             total=_count_showtimes(schedules),
+            movie=MovieMeta(
+                title=str(movie.get("title", "Unknown Movie")),
+                description=str(movie.get("description", "")),
+                poster_url=str(movie.get("poster_url", "")),
+            ),
             schedules=schedules,
         )
     except Exception as e:

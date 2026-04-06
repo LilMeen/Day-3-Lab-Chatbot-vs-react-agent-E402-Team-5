@@ -6,8 +6,10 @@ import path from 'path';
 
 @Injectable()
 export class ChatRepository {
-  private readonly aiAgentServiceUrl = process.env.AI_SERVICE_URL ?? 'http://localhost:8000/agent';
-  private readonly aiBaselineServiceUrl = process.env.AI_BASELINE_SERVICE_URL ?? 'http://localhost:8000/baseline';
+  private readonly aiAgentServiceUrl =
+    process.env.AI_AGENT_SERVICE_URL ?? 'http://localhost:8000/api/v1/agent';
+  private readonly aiBaselineServiceUrl =
+    process.env.AI_BASELINE_SERVICE_URL ?? 'http://localhost:8000/api/v1/baseline';
 
   private readonly historyDir = path.resolve(
     process.cwd(),
@@ -32,15 +34,15 @@ export class ChatRepository {
   }
 
   async askAI(payload: ChatRequestEntity): Promise<ChatResponseEntity> {
-    
     try {
       const aiServiceUrl = payload.model === 'agent' ? this.aiAgentServiceUrl : this.aiBaselineServiceUrl;
+  
       const response = await fetch(aiServiceUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ user_message: payload.message }),
       });
 
       if (!response.ok) {
@@ -50,12 +52,23 @@ export class ChatRepository {
         );
       }
 
-      const data = (await response.json()) as Partial<ChatResponseEntity>;
+      const data = (await response.json()) as Partial<{
+        reply: string;
+        bot_type: 'baseline' | 'react_agent' | string;
+        movie_ids: string[];
+        movieIds: string[];
+      }>;
+
+      const normalizedMovieIds = Array.isArray(data.movie_ids)
+        ? data.movie_ids
+        : Array.isArray(data.movieIds)
+          ? data.movieIds
+          : undefined;
 
       return {
         reply: data.reply ?? '',
-        sessionId: data.sessionId,
-        model: data.model,
+        model: payload.model,
+        movieIds: normalizedMovieIds,
       };
     } catch (error) {
       if (error instanceof HttpException) {
