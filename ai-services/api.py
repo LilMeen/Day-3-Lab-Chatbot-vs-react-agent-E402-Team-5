@@ -1,4 +1,5 @@
 import os
+from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from crawling.crawl import get_movie_schedules
@@ -23,7 +24,31 @@ class MovieScheduleResponse(BaseModel):
     status: str
     movie_url: str
     total: int
-    schedules: list[list[str]]
+    schedules: list[dict[str, Any]]
+
+
+def _count_showtimes(grouped_schedules: list[dict[str, Any]]) -> int:
+    total = 0
+    for locality in grouped_schedules:
+        theatres = locality.get("theatres", [])
+        if not isinstance(theatres, list):
+            continue
+
+        for theatre in theatres:
+            movies = theatre.get("movies", [])
+            if not isinstance(movies, list):
+                continue
+
+            for movie in movies:
+                schedule = movie.get("schedule", [])
+                if not isinstance(schedule, list):
+                    continue
+
+                for day_item in schedule:
+                    showtimes = day_item.get("showtimes", [])
+                    if isinstance(showtimes, list):
+                        total += len(showtimes)
+    return total
 
 
 
@@ -66,7 +91,7 @@ async def movie_schedules(movie_url: str, debug_html: bool = False):
         return MovieScheduleResponse(
             status="success",
             movie_url=movie_url,
-            total=len(schedules),
+            total=_count_showtimes(schedules),
             schedules=schedules,
         )
     except Exception as e:
