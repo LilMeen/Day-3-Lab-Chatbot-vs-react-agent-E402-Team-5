@@ -14,6 +14,9 @@ export type MovieSchedule = {
 export type InfoResponse = {
   movieId: string;
   movieUrl: string;
+  title: string;
+  description: string;
+  posterUrl: string;
   total: number;
   firstSchedule: MovieSchedule | null;
   schedules: MovieSchedule[];

@@ -1,11 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { skipToken } from "@reduxjs/toolkit/query";
+import React, { useMemo, useState } from "react";
 import Sidebar from "./Sidebar";
 import ChatArea from "./ChatArea";
 import MovieInfo from "./MovieInfo";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import {
+  useGetChatHistoryQuery,
+  useGetChatSessionsQuery,
+  useLazyGetChatHistoryQuery,
+  useSendMessageMutation,
+} from "@/store/api/[module]/chatApi";
 
 type Role = "user" | "assistant";
 
@@ -18,117 +23,119 @@ interface Message {
 interface Conversation {
   id: string;
   title: string;
-  messages: Message[];
-  conversationId?: string;
-}
-
-interface MovieScheduleEntity {
-  theatre: string;
-  day: string;
-  time: string;
-}
-
-interface MovieInfo {
-  movieId: string;
-  movieUrl: string;
-  title?: string;
-  total: number;
-  schedules: MovieScheduleEntity[];
 }
 
 export default function ChatUI() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeId, setActiveId] = useState<string>("");
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [movieInfo, setMovieInfo] = useState<MovieInfo | null>(null);
+  const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [sendMessageMutation, { isLoading: loading }] = useSendMessageMutation();
+  const [triggerGetChatHistory] = useLazyGetChatHistoryQuery();
+  const { data: sessionIds = [], refetch: refetchSessions } = useGetChatSessionsQuery();
+  const {
+    data: chatHistory = [],
+    isFetching: loadingHistory,
+  } = useGetChatHistoryQuery(
+    activeSessionId ? { sessionId: activeSessionId } : skipToken,
+    { refetchOnMountOrArgChange: true },
+  );
+
+  const [movieIds, setMovieIds] = useState<string[]>([]);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showMovieInfo, setShowMovieInfo] = useState(false);
   const [model, setModel] = useState<"baseline" | "agent">("agent");
+  const hasActiveSession = Boolean(activeSessionId);
 
-  // Initialize first conversation on mount
-  useEffect(() => {
-    if (conversations.length === 0) {
-      const initialId = String(Date.now());
-      setConversations([
-        {
-          id: initialId,
-          title: "New chat",
-          messages: [],
-        }
-      ]);
-      setActiveId(initialId);
-    }
-  }, []);
+  const conversations: Conversation[] = useMemo(
+    () =>
+      sessionIds.map((id) => ({
+        id,
+        title: `Session ${id.slice(0, 8)}`,
+      })),
+    [sessionIds],
+  );
 
-  const activeConv = conversations.find((c) => c.id === activeId) ?? conversations[0];
+  const messages: Message[] = useMemo(
+    () => {
+      const historyMessages: Message[] = hasActiveSession
+        ? chatHistory.map((m, index): Message => ({
+            id: `${activeSessionId ?? "no-session"}-${index}`,
+            role: m.role === "user" ? "user" : "assistant",
+            text: m.message,
+          }))
+        : [];
+
+      return [...historyMessages, ...optimisticMessages];
+    },
+    [chatHistory, activeSessionId, hasActiveSession, optimisticMessages],
+  );
 
   async function sendMessage(text: string) {
-    if (!text.trim()) return;
-    
-    const msg: Message = { id: String(Date.now()), role: "user", text };
-    setConversations((prev) =>
-      prev.map((c) => (c.id === activeConv.id ? { ...c, messages: [...c.messages, msg] } : c))
-    );
+    const trimmedText = text.trim();
+    if (!trimmedText) return;
+
     setInput("");
-    setLoading(true);
+    setChatError(null);
+    const requestSessionId = activeSessionId ?? undefined;
+
+    setOptimisticMessages((prev) => [
+      ...prev,
+      {
+        id: `pending-${Date.now()}`,
+        role: "user",
+        text: trimmedText,
+      },
+    ]);
 
     try {
-      const response = await fetch(`${API_BASE}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          conversationId: activeConv.conversationId,
-          model,
-        }),
-      });
+      const data = await sendMessageMutation({
+        message: trimmedText,
+        sessionId: requestSessionId,
+        model,
+      }).unwrap();
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      const nextSessionId = data.sessionId?.trim() || requestSessionId || null;
+
+      if (!nextSessionId) {
+        throw new Error("Không nhận được sessionId từ server.");
       }
 
-      const data = await response.json();
-      const reply: Message = {
-        id: String(Date.now() + 1),
-        role: "assistant",
-        text: data.reply || "Xin lỗi, tôi không thể xử lý yêu cầu này.",
-      };
+      await refetchSessions();
 
-      // Update conversation with conversationId from server
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeConv.id
-            ? {
-                ...c,
-                messages: [...c.messages, reply],
-                conversationId: data.conversationId,
-              }
-            : c
-        )
-      );
+      // Force network fetch to avoid stale/empty cache on the first message of a session.
+      await triggerGetChatHistory({ sessionId: nextSessionId }, false).unwrap();
 
-      // If backend returns movie info, display it
-      if (data.movieInfo) {
-        setMovieInfo(data.movieInfo);
-        setShowMovieInfo(true);
+      if (nextSessionId !== activeSessionId) {
+        setActiveSessionId(nextSessionId);
       }
-    } catch (error) {
-      console.error("Chat error:", error);
-      const errorReply: Message = {
-        id: String(Date.now() + 1),
-        role: "assistant",
-        text: "Xin lỗi, có lỗi xảy ra khi kết nối tới server.",
-      };
-      setConversations((prev) =>
-        prev.map((c) =>
-          c.id === activeConv.id ? { ...c, messages: [...c.messages, errorReply] } : c
-        )
-      );
-    } finally {
-      setLoading(false);
+
+      // Server history is now synced, clear optimistic echoes.
+      setOptimisticMessages([]);
+
+      const nextMovieIds = Array.isArray(data.movieIds)
+        ? data.movieIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+        : [];
+
+      setMovieIds(nextMovieIds);
+      setShowMovieInfo(nextMovieIds.length > 0);
+    } catch (error: unknown) {
+      setOptimisticMessages([]);
+      const fallbackMessage = "Gửi tin nhắn không thành công, vui lòng thử lại sau.";
+      if (error instanceof Error && error.message) {
+        setChatError(error.message);
+        return;
+      }
+
+      type ApiErrorShape = { data?: { message?: string } };
+      const maybeApiError = error as ApiErrorShape;
+      setChatError(maybeApiError.data?.message ?? fallbackMessage);
     }
   }
+
+  const activeTitle = activeSessionId
+    ? `Session ${activeSessionId.slice(0, 8)}`
+    : "New chat";
 
   return (
     <div style={{ display: "flex", height: "100vh", backgroundColor: "#f3f4f6", color: "#111827" }}>
@@ -137,13 +144,18 @@ export default function ChatUI() {
         <div style={{ animation: "slideIn 0.3s ease-out" }}>
           <Sidebar
             conversations={conversations}
-            activeId={activeId}
-            onSelectConversation={setActiveId}
+            activeId={activeSessionId ?? ""}
+            onSelectConversation={(id) => {
+              setActiveSessionId(id);
+              setOptimisticMessages([]);
+            }}
             onNewChat={() => {
-              const id = String(Date.now());
-              const newConv: Conversation = { id, title: "New chat", messages: [] };
-              setConversations((s) => [newConv, ...s]);
-              setActiveId(id);
+              setActiveSessionId(null);
+              setInput("");
+              setOptimisticMessages([]);
+              setChatError(null);
+              setMovieIds([]);
+              setShowMovieInfo(false);
             }}
             onToggle={() => setShowSidebar(!showSidebar)}
           />
@@ -151,24 +163,40 @@ export default function ChatUI() {
       )}
 
       {/* Chat Area */}
-      <ChatArea
-        title={activeConv?.title ?? "Chat"}
-        messages={activeConv?.messages ?? []}
-        loading={loading}
-        input={input}
-        onInputChange={setInput}
-        onSendMessage={sendMessage}
-        onToggleSidebar={() => setShowSidebar(!showSidebar)}
-        onToggleMovieInfo={() => setShowMovieInfo(!showMovieInfo)}
-        sidebarVisible={showSidebar}
-        model={model}
-        onModelChange={setModel}
-      />
+      <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+        {chatError && (
+          <div
+            style={{
+              margin: "8px 12px 0",
+              padding: "8px 12px",
+              borderRadius: 8,
+              backgroundColor: "#fee2e2",
+              color: "#991b1b",
+              fontSize: 14,
+            }}
+          >
+            {chatError}
+          </div>
+        )}
+        <ChatArea
+          title={activeTitle}
+          messages={messages}
+          loading={loading || (hasActiveSession && loadingHistory)}
+          input={input}
+          onInputChange={setInput}
+          onSendMessage={sendMessage}
+          model={model}
+          onModelChange={setModel}
+          onToggleSidebar={() => setShowSidebar(!showSidebar)}
+          onToggleMovieInfo={() => setShowMovieInfo(!showMovieInfo)}
+          sidebarVisible={showSidebar}
+        />
+      </div>
 
       {/* Movie Info with animation */}
       {showMovieInfo && (
         <div style={{ animation: "slideInRight 0.3s ease-out" }}>
-          <MovieInfo movieInfo={movieInfo} />
+          <MovieInfo movieIds={movieIds} />
         </div>
       )}
 

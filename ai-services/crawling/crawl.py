@@ -8,6 +8,7 @@ from typing import Any, Iterable, List
 import requests
 from bs4 import BeautifulSoup
 
+
 # ---------------------------------------------------------------------------
 # Cinestar price rules (weekday/weekend × time-of-day × screen type)
 # ---------------------------------------------------------------------------
@@ -136,6 +137,9 @@ def _extract_movie_name(next_data: dict[str, Any], soup: BeautifulSoup) -> str:
     if soup.title and soup.title.string:
         return soup.title.string.strip()
     return "Unknown Movie"
+
+
+
 
 
 def _parse_rows_from_next_data(
@@ -385,3 +389,6 @@ def get_all_ticket_prices(movie_url: str) -> dict[str, Any]:
     prices = [{"type": k, "category": "Đơn", "price": int(v.replace(",","").replace(" VND","")), "formatted": v}
               for k, v in estimated.items()]
     return {"source": "estimated", "prices": prices}
+
+	
+

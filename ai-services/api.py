@@ -1,6 +1,7 @@
 import os
 import uuid
-from fastapi import APIRouter, HTTPException, Query
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Any
 
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/api/v1", tags=["AI Chat Services"])
 
 # ReAct agent instance (shared, holds session memory)
 _react_agent = ReActAgent()
+LLM_TIMEOUT_SEC = int(os.getenv("LLM_TIMEOUT_SEC", "45"))
 
 # ------------------------------------------------------------------
 # LLM caller for baseline (no tools, no ReAct)
@@ -81,6 +83,15 @@ def _is_out_of_domain(user_message: str) -> bool:
 
     except Exception:
         return False  # On classifier error — let it pass, don't block user
+
+
+def _run_with_timeout(func, *args):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(func, *args)
+        try:
+            return future.result(timeout=LLM_TIMEOUT_SEC)
+        except FuturesTimeoutError:
+            return None
 
 
 def _call_llm_baseline(user_message: str) -> str:
@@ -220,19 +231,34 @@ async def api_get_discount():
 @router.post("/baseline", response_model=ChatResponse)
 async def chat_baseline(request: ChatRequest):
     """Bot cơ bản: chỉ dùng LLM, KHÔNG dùng tool hay ReAct loop."""
-    if _is_out_of_domain(request.user_message):
+    ood_result = _run_with_timeout(_is_out_of_domain, request.user_message)
+    if ood_result is True:
         return ChatResponse(status="out_of_domain", bot_type="baseline", reply=OUT_OF_DOMAIN_REPLY)
+
     try:
-        reply = _call_llm_baseline(request.user_message)
+        reply = _run_with_timeout(_call_llm_baseline, request.user_message)
+        if reply is None:
+            return ChatResponse(
+                status="error",
+                bot_type="baseline",
+                reply="Baseline model timeout. Vui lòng thử lại hoặc chuyển sang Agent.",
+                session_id=request.session_id,
+            )
         return ChatResponse(status="success", bot_type="baseline", reply=reply)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return ChatResponse(
+            status="error",
+            bot_type="baseline",
+            reply="Baseline model gặp lỗi nội bộ. Vui lòng thử lại sau.",
+            session_id=request.session_id,
+        )
 
 
 @router.post("/agent", response_model=ChatResponse)
 async def chat_react_agent(request: ChatRequest):
     """Bot thông minh: dùng ReAct Agent với 7 tools để tra cứu dữ liệu thực tế."""
-    if _is_out_of_domain(request.user_message):
+    ood_result = _run_with_timeout(_is_out_of_domain, request.user_message)
+    if ood_result is True:
         return ChatResponse(status="out_of_domain", bot_type="react_agent", reply=OUT_OF_DOMAIN_REPLY)
     try:
         session_id = request.session_id or str(uuid.uuid4())
