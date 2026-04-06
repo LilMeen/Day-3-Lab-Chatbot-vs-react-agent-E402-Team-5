@@ -44,6 +44,7 @@ export default function ChatUI() {
   const [movieInfo, setMovieInfo] = useState<MovieInfo | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showMovieInfo, setShowMovieInfo] = useState(false);
+  const [model, setModel] = useState<"baseline" | "agent">("agent");
 
   // Initialize first conversation on mount
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function ChatUI() {
         body: JSON.stringify({
           message: text,
           conversationId: activeConv.conversationId,
+          model,
         }),
       });
 
@@ -159,6 +161,8 @@ export default function ChatUI() {
         onToggleSidebar={() => setShowSidebar(!showSidebar)}
         onToggleMovieInfo={() => setShowMovieInfo(!showMovieInfo)}
         sidebarVisible={showSidebar}
+        model={model}
+        onModelChange={setModel}
       />
 
       {/* Movie Info with animation */}

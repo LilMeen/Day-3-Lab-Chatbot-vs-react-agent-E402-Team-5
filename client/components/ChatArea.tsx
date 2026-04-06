@@ -17,6 +17,8 @@ interface ChatAreaProps {
   onToggleSidebar?: () => void;
   onToggleMovieInfo?: () => void;
   sidebarVisible?: boolean;
+  model?: "baseline" | "agent";
+  onModelChange?: (model: "baseline" | "agent") => void;
 }
 
 export default function ChatArea({
@@ -29,6 +31,8 @@ export default function ChatArea({
   onToggleSidebar,
   onToggleMovieInfo,
   sidebarVisible,
+  model,
+  onModelChange,
 }: ChatAreaProps) {
   return (
     <main className={styles.chatMain}>
@@ -40,7 +44,18 @@ export default function ChatArea({
             </button>
           )}
           <h3 className={styles.title}>{title}</h3>
-          <div className={styles.toggles}>
+          <div className={styles.controls}>
+            {onModelChange && (
+              <select
+                value={model}
+                onChange={(e) => onModelChange(e.target.value as "baseline" | "agent")}
+                className={styles.modelSelect}
+                aria-label="Select model"
+              >
+                <option value="agent">Agent</option>
+                <option value="baseline">Baseline</option>
+              </select>
+            )}
             {onToggleMovieInfo && (
               <button onClick={onToggleMovieInfo} className={styles.toggleBtn} title="Toggle movie info">
                 ℹ
