@@ -6,6 +6,7 @@ from typing import Any, Iterable, List
 
 import requests
 from bs4 import BeautifulSoup
+from crawling.crawl import get_movie_schedules
 
 
 def _normalize_day(raw_day: str) -> str:
