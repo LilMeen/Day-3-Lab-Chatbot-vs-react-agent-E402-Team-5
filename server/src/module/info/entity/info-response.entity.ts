@@ -1,6 +1,13 @@
+export interface MovieScheduleEntity {
+  theatre: string;
+  day: string;
+  time: string;
+}
+
 export interface InfoResponseEntity {
-  title?: string;
-  summary: string;
-  content?: string;
-  source?: string;
+  movieId: string;
+  movieUrl: string;
+  total: number;
+  firstSchedule: MovieScheduleEntity | null;
+  schedules: MovieScheduleEntity[];
 }

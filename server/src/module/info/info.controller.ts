@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { InfoService } from './info.service';
 import type { InfoRequestEntity } from './entity/info-request.entity';
 import type { InfoResponseEntity } from './entity/info-response.entity';
@@ -7,15 +7,20 @@ import type { InfoResponseEntity } from './entity/info-response.entity';
 export class InfoController {
   constructor(private readonly infoService: InfoService) {}
 
-  @Post()
-  async getInfo(@Body() payload: InfoRequestEntity): Promise<InfoResponseEntity> {
-    const hasUrl = Boolean(payload?.url && payload.url.trim().length > 0);
-    const hasKeyword = Boolean(payload?.keyword && payload.keyword.trim().length > 0);
-
-    if (!hasUrl && !hasKeyword) {
-      throw new BadRequestException('url or keyword is required');
+  @Get('movie-schedules')
+  async getMovieSchedules(
+    @Query('movieId') movieId?: string,
+    @Query('debugHtml') debugHtml?: string,
+  ): Promise<InfoResponseEntity> {
+    if (!movieId || movieId.trim().length === 0) {
+      throw new BadRequestException('movieId is required');
     }
 
-    return this.infoService.getInfo(payload);
+    const payload: InfoRequestEntity = {
+      movieId,
+      debugHtml: debugHtml === 'true',
+    };
+
+    return this.infoService.getMovieSchedules(payload);
   }
 }

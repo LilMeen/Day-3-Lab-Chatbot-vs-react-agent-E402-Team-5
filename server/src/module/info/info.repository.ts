@@ -1,36 +1,57 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { InfoRequestEntity } from './entity/info-request.entity';
-import type { InfoResponseEntity } from './entity/info-response.entity';
+import type { InfoResponseEntity, MovieScheduleEntity } from './entity/info-response.entity';
+
+interface RepositoryInput {
+  movieId: string;
+  movieUrl: string;
+  debugHtml?: boolean;
+}
+
+interface AiScheduleResponse {
+  status: string;
+  movie_url: string;
+  total: number;
+  schedules: string[][];
+}
 
 @Injectable()
 export class InfoRepository {
-  private readonly crawlServiceUrl =
-    process.env.CRAWL_SERVICE_URL ?? 'http://localhost:8001/crawl/info';
+  private readonly aiServiceBaseUrl = process.env.AI_SERVICE_URL ?? 'http://localhost:8000';
 
-  async getInfo(payload: InfoRequestEntity): Promise<InfoResponseEntity> {
+  async getMovieSchedules(input: RepositoryInput): Promise<InfoResponseEntity> {
     try {
-      const response = await fetch(this.crawlServiceUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const endpoint = new URL('/api/v1/movie-schedules', this.aiServiceBaseUrl);
+      endpoint.searchParams.set('movie_url', input.movieUrl);
+      if (input.debugHtml) {
+        endpoint.searchParams.set('debug_html', 'true');
+      }
+
+      const response = await fetch(endpoint.toString(), { method: 'GET' });
 
       if (!response.ok) {
         throw new HttpException(
-          `Crawl service returned status ${response.status}`,
+          `AI service returned status ${response.status}`,
           HttpStatus.BAD_GATEWAY,
         );
       }
 
-      const data = (await response.json()) as Partial<InfoResponseEntity>;
+      const data = (await response.json()) as Partial<AiScheduleResponse>;
+      const schedules: MovieScheduleEntity[] = Array.isArray(data.schedules)
+        ? data.schedules
+            .filter((item): item is string[] => Array.isArray(item) && item.length >= 3)
+            .map(([theatre, day, time]) => ({
+              theatre: theatre ?? '',
+              day: day ?? '',
+              time: time ?? '',
+            }))
+        : [];
 
       return {
-        title: data.title,
-        summary: data.summary ?? '',
-        content: data.content,
-        source: data.source,
+        movieId: input.movieId,
+        movieUrl: data.movie_url ?? input.movieUrl,
+        total: schedules.length,
+        firstSchedule: schedules[0] ?? null,
+        schedules,
       };
     } catch (error) {
       if (error instanceof HttpException) {
@@ -38,7 +59,7 @@ export class InfoRepository {
       }
 
       throw new HttpException(
-        'Cannot reach crawl service',
+        'Cannot reach AI service',
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }

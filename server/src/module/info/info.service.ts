@@ -7,7 +7,16 @@ import type { InfoResponseEntity } from './entity/info-response.entity';
 export class InfoService {
   constructor(private readonly infoRepository: InfoRepository) {}
 
-  async getInfo(payload: InfoRequestEntity): Promise<InfoResponseEntity> {
-    return this.infoRepository.getInfo(payload);
+  async getMovieSchedules(payload: InfoRequestEntity): Promise<InfoResponseEntity> {
+    const movieId = payload.movieId.trim().replace(/^\/+|\/+$/g, '');
+    const baseMovieUrl =
+      process.env.CINESTAR_MOVIE_BASE_URL ?? 'https://cinestar.com.vn/movie';
+    const movieUrl = `${baseMovieUrl.replace(/\/$/, '')}/${movieId}/`;
+
+    return this.infoRepository.getMovieSchedules({
+      movieId,
+      movieUrl,
+      debugHtml: payload.debugHtml,
+    });
   }
 }
